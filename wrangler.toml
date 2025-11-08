@@ -1,5 +1,3 @@
 name = "nutribuddy"
 compatibility_date = "2025-11-08"
-
-[site]
-bucket = "./out"
+pages_build_output_dir = "./out"
