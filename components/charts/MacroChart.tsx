@@ -39,7 +39,7 @@ export const MacroChart: React.FC<MacroChartProps> = ({ protein, fats, carbs }) 
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full min-h-[250px] flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie

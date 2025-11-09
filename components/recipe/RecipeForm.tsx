@@ -5,7 +5,7 @@ import { searchIngredients, getIngredientById } from '@/lib/usda-api';
 import { Ingredient, RecipeIngredient } from '@/lib/types';
 import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { calculateNutrients, createRecipe, updateRecipe } from '@/lib/recipe-service';
-import { getDisplayUnit, convertToDisplayUnit, convertToGrams } from '@/lib/unit-utils';
+import { getDisplayUnit, convertToDisplayUnit, convertToGrams, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
 
 interface RecipeFormProps {
   userId: string;
@@ -28,6 +28,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
 }) => {
   const [recipeName, setRecipeName] = useState(initialName);
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>(initialIngredients);
+  const [ingredientUnits, setIngredientUnits] = useState<Record<number, 'g' | 'tbsp' | 'special'>>(
+    initialIngredients.reduce((acc, _, idx) => ({ ...acc, [idx]: 'g' }), {})
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Ingredient[]>([]);
   const [searching, setSearching] = useState(false);
@@ -87,7 +90,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
         mass: useIng.servingSize || 100,
         quantity: useIng.servingSize ? 1 : undefined,
       };
+      const newIndex = ingredients.length;
       setIngredients([...ingredients, newIngredient]);
+      setIngredientUnits({ ...ingredientUnits, [newIndex]: 'g' });
       setSearchQuery('');
       setSearchResults([]);
     } catch (e) {
@@ -97,7 +102,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
         mass: ingredient.servingSize || 100,
         quantity: ingredient.servingSize ? 1 : undefined,
       };
+      const newIndex = ingredients.length;
       setIngredients([...ingredients, newIngredient]);
+      setIngredientUnits({ ...ingredientUnits, [newIndex]: 'g' });
       setSearchQuery('');
       setSearchResults([]);
     } finally {
@@ -117,6 +124,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
 
   const removeIngredient = (index: number) => {
     setIngredients(ingredients.filter((_, i) => i !== index));
+    const newUnits = { ...ingredientUnits };
+    delete newUnits[index];
+    setIngredientUnits(newUnits);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -244,9 +254,13 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
               Ingredients ({ingredients.length})
             </label>
             <div className="space-y-2">
-              {ingredients.map((item, index) => (
+              {ingredients.map((item, index) => {
+                const cleanUnit = sanitizeServingUnit(item.ingredient.servingUnit);
+                const hasSpecialUnit = item.ingredient.servingSize && cleanUnit;
+                
+                return (
                 <div key={index} className="bg-neutral-800 border border-neutral-800 p-3 rounded-lg">
-                  <div className="flex items-start gap-2 mb-2">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-neutral-50 font-medium text-sm truncate">{item.ingredient.description}</p>
                       <p className="text-neutral-400 text-xs">
@@ -256,63 +270,88 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                     <button
                       type="button"
                       onClick={() => removeIngredient(index)}
-                      className="text-red-400 hover:bg-neutral-600 active:bg-neutral-700 p-2 rounded-lg transition flex-shrink-0"
+                      className="text-red-400 hover:text-red-300 p-1 flex-shrink-0 transition"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                   
-                  {/* Quantity input */}
-                  <div className="flex items-center gap-2">
-                    {item.ingredient.servingSize && item.ingredient.servingUnit ? (
-                      <>
-                        <input
-                          type="number"
-                          value={item.quantity || Math.round(item.mass / item.ingredient.servingSize)}
-                          onChange={(e) => {
-                            const qty = parseFloat(e.target.value) || 0;
-                            updateIngredientMass(index, qty * (item.ingredient.servingSize || 100));
-                          }}
-                          className="w-20 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-50 font-medium focus:border-neutral-600 focus:outline-none text-base"
-                          placeholder="1"
-                          min="0"
-                          step="0.5"
-                        />
-                        <span className="text-neutral-400 font-medium text-sm">{getFriendlyUnit(item.ingredient)}</span>
-                        <span className="text-neutral-400 text-xs">({item.mass.toFixed(0)}g)</span>
-                      </>
-                    ) : (
-                      <>
-                        <input
-                          type="number"
-                          value={
-                            preferredUnit === 'tablespoons' 
-                              ? convertToDisplayUnit(item.mass, item.ingredient, preferredUnit).value
-                              : item.mass
-                          }
-                          onChange={(e) => {
-                            const inputValue = parseFloat(e.target.value) || 0;
-                            const grams = preferredUnit === 'tablespoons'
-                              ? convertToGrams(inputValue, item.ingredient, 'tbsp')
-                              : inputValue;
-                            updateIngredientMass(index, grams);
-                          }}
-                          className="w-24 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-50 font-medium focus:border-neutral-600 focus:outline-none text-base"
-                          placeholder={preferredUnit === 'tablespoons' ? '1' : '100'}
-                          min="0"
-                          step={preferredUnit === 'tablespoons' ? '0.5' : '1'}
-                        />
-                        <span className="text-neutral-400 font-medium text-sm">
-                          {preferredUnit === 'tablespoons' ? 'tbsp' : 'g'}
-                        </span>
-                        {preferredUnit === 'tablespoons' && (
-                          <span className="text-neutral-400 text-xs">({item.mass.toFixed(0)}g)</span>
-                        )}
-                      </>
+                  {/* Quantity input - compact layout */}
+                  {/* Combined quantity, unit selector, and grams */}
+                  <div className="inline-flex items-center border border-neutral-800 rounded-lg bg-neutral-950 px-2 py-1.5 gap-1">
+                    {/* Up/Down spinner buttons */}
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const multiplier = ingredientUnits[index] === 'special' && item.ingredient.servingSize ? item.ingredient.servingSize : ingredientUnits[index] === 'tbsp' ? 15 : 1;
+                          updateIngredientMass(index, item.mass + multiplier);
+                        }}
+                        className="h-4 w-5 text-neutral-400 hover:text-neutral-200 text-xs flex items-center justify-center font-bold"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const multiplier = ingredientUnits[index] === 'special' && item.ingredient.servingSize ? item.ingredient.servingSize : ingredientUnits[index] === 'tbsp' ? 15 : 1;
+                          updateIngredientMass(index, Math.max(0, item.mass - multiplier));
+                        }}
+                        className="h-4 w-5 text-neutral-400 hover:text-neutral-200 text-xs flex items-center justify-center font-bold"
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* Number input */}
+                    <input
+                      type="number"
+                      value={
+                        ingredientUnits[index] === 'special' && item.ingredient.servingSize
+                          ? Math.round(item.mass / item.ingredient.servingSize * 10) / 10
+                          : ingredientUnits[index] === 'tbsp'
+                          ? Math.round(item.mass / 15 * 10) / 10
+                          : item.mass
+                      }
+                      onChange={(e) => {
+                        const inputValue = parseFloat(e.target.value) || 0;
+                        let grams = inputValue;
+                        
+                        if (ingredientUnits[index] === 'special' && item.ingredient.servingSize) {
+                          grams = inputValue * item.ingredient.servingSize;
+                        } else if (ingredientUnits[index] === 'tbsp') {
+                          grams = inputValue * 15;
+                        }
+                        
+                        updateIngredientMass(index, grams);
+                      }}
+                      className="w-12 px-2 py-1 bg-transparent text-neutral-50 font-medium focus:outline-none text-sm text-center [&::-webkit-outer-spin-button]:[appearance:none] [&::-webkit-inner-spin-button]:[appearance:none] [-moz-appearance:textfield]"
+                      placeholder="0"
+                      min="0"
+                      step="1"
+                    />
+
+                    {/* Unit picker dropdown - inline */}
+                    <select
+                      value={ingredientUnits[index]}
+                      onChange={(e) => setIngredientUnits({ ...ingredientUnits, [index]: e.target.value as 'g' | 'tbsp' | 'special' })}
+                      className="px-1.5 py-1 bg-transparent text-neutral-50 font-medium focus:outline-none text-xs appearance-none cursor-pointer"
+                    >
+                      <option value="g">g</option>
+                      <option value="tbsp">tbsp</option>
+                      {hasSpecialUnit && <option value="special">{abbreviateUnit(cleanUnit)}</option>}
+                    </select>
+
+                    {/* Grams display - only for special units */}
+                    {ingredientUnits[index] === 'special' && (
+                      <span className="text-neutral-400 text-xs whitespace-nowrap flex-shrink-0">
+                        {item.mass.toFixed(0)}g
+                      </span>
                     )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         )}
@@ -353,7 +392,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-neutral-700 hover:bg-neutral-600 active:bg-neutral-700 text-neutral-950 font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
+            className="flex-1 bg-neutral-700 hover:bg-neutral-600 active:bg-neutral-700 text-neutral-50 font-bold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-base"
           >
             {saving ? (
               <span className="flex items-center justify-center gap-2">

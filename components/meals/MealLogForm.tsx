@@ -5,6 +5,7 @@ import { getUserRecipes } from '@/lib/recipe-service';
 import { logMeal } from '@/lib/meal-service';
 import { Recipe } from '@/lib/types';
 import { Plus, Loader2, Search, X } from 'lucide-react';
+import { convertToGrams, gramsToTablespoons, shouldUseNaturalUnit, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
 
 interface MealLogFormProps {
   userId: string;
@@ -15,6 +16,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [mass, setMass] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,7 +73,17 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
     }
     
     // Use full recipe mass or custom mass
-    const massToLog = useFullRecipe ? selectedRecipe.totalMass : parseFloat(mass);
+    let massToLog = useFullRecipe ? selectedRecipe.totalMass : parseFloat(mass);
+    
+    // Convert from selected unit to grams if needed
+    if (!useFullRecipe && selectedUnit !== 'g') {
+      if (selectedUnit === 'tbsp') {
+        massToLog = massToLog * 15; // 1 tbsp ≈ 15g
+      } else if (selectedUnit === 'special' && selectedRecipe.ingredients && selectedRecipe.ingredients[0]?.ingredient.servingSize) {
+        // Convert special unit to grams using the serving size
+        massToLog = massToLog * selectedRecipe.ingredients[0].ingredient.servingSize;
+      }
+    }
     
     if (isNaN(massToLog) || massToLog <= 0) {
       setError('Please enter a valid amount');
@@ -91,6 +103,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
       );
       setSelectedRecipe(null);
       setMass('');
+      setSelectedUnit('g');
       setUseFullRecipe(true);
       setSearchQuery('');
       setShowDropdown(false);
@@ -105,7 +118,17 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   const calculateNutrients = () => {
     if (!selectedRecipe) return null;
     
-    const massToUse = useFullRecipe ? selectedRecipe.totalMass : (parseFloat(mass) || 0);
+    let massToUse = useFullRecipe ? selectedRecipe.totalMass : (parseFloat(mass) || 0);
+    
+    // Convert from selected unit to grams if needed
+    if (!useFullRecipe && selectedUnit !== 'g') {
+      if (selectedUnit === 'tbsp') {
+        massToUse = massToUse * 15; // 1 tbsp ≈ 15g
+      } else if (selectedUnit === 'special' && selectedRecipe.ingredients && selectedRecipe.ingredients[0]?.ingredient.servingSize) {
+        massToUse = massToUse * selectedRecipe.ingredients[0].ingredient.servingSize;
+      }
+    }
+    
     const multiplier = massToUse / 100;
     
     return {
@@ -172,6 +195,8 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                     setSearchQuery('');
                     setSelectedRecipe(null);
                     setShowDropdown(false);
+                    setMass('');
+                    setSelectedUnit('g');
                   }}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-50"
                 >
@@ -193,6 +218,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                         setShowDropdown(false);
                         setUseFullRecipe(true);
                         setMass('');
+                        setSelectedUnit('g');
                       }}
                       className="w-full px-4 py-3 text-left hover:bg-neutral-600 transition border-b border-neutral-800 last:border-b-0"
                     >
@@ -249,19 +275,69 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
             </div>
 
             {!useFullRecipe && (
-              <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">
-                  Amount (grams)
-                </label>
-                <input
-                  type="number"
-                  value={mass}
-                  onChange={(e) => setMass(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
-                  placeholder="Enter grams"
-                  min="0"
-                  step="1"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-400 mb-2">
+                    Amount & Unit
+                  </label>
+                  <div className="inline-flex items-center border border-neutral-800 rounded-lg bg-neutral-950 px-2 py-1.5 gap-1">
+                    {/* Up/Down spinner buttons */}
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setMass(String((parseFloat(mass) || 0) + 1))}
+                        className="h-4 w-5 text-neutral-400 hover:text-neutral-200 text-xs flex items-center justify-center font-bold"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMass(String(Math.max(0, (parseFloat(mass) || 0) - 1)))}
+                        className="h-4 w-5 text-neutral-400 hover:text-neutral-200 text-xs flex items-center justify-center font-bold"
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* Number input */}
+                    <input
+                      type="number"
+                      value={mass}
+                      onChange={(e) => setMass(e.target.value)}
+                      className="w-12 px-2 py-1 bg-transparent text-neutral-50 font-medium focus:outline-none text-sm text-center [&::-webkit-outer-spin-button]:[appearance:none] [&::-webkit-inner-spin-button]:[appearance:none] [-moz-appearance:textfield]"
+                      placeholder="0"
+                      min="0"
+                      step="1"
+                    />
+
+                    {/* Unit picker dropdown - inline */}
+                    <select
+                      value={selectedUnit}
+                      onChange={(e) => setSelectedUnit(e.target.value as 'g' | 'tbsp' | 'special')}
+                      className="px-1.5 py-1 bg-transparent text-neutral-50 font-medium focus:outline-none text-xs appearance-none cursor-pointer"
+                    >
+                      <option value="g">g</option>
+                      <option value="tbsp">tbsp</option>
+                      {selectedRecipe?.ingredients?.[0]?.ingredient.servingSize && 
+                       sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit) && (
+                        <option value="special">{abbreviateUnit(sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit))}</option>
+                      )}
+                    </select>
+
+                    {/* Grams display - only for special units */}
+                    {selectedUnit === 'special' && (
+                      <span className="text-neutral-400 text-xs whitespace-nowrap flex-shrink-0">
+                        {((parseFloat(mass) || 0) * (selectedRecipe?.ingredients?.[0]?.ingredient.servingSize || 1)).toFixed(0)}g
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-2">
+                    {selectedUnit === 'g' && 'Precise weight measurement'}
+                    {selectedUnit === 'tbsp' && '≈ 15g per tablespoon'}
+                    {selectedUnit === 'special' && selectedRecipe?.ingredients?.[0]?.ingredient.servingSize && 
+                      `1 ${sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit) || 'unit'} = ${selectedRecipe.ingredients[0].ingredient.servingSize}g`}
+                  </p>
+                </div>
               </div>
             )}
 

@@ -38,7 +38,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full min-h-[250px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#404040" vertical={false} />

@@ -108,3 +108,81 @@ export function formatIngredientAmount(
   const { value, unit } = convertToDisplayUnit(grams, ingredient, preferredUnit);
   return `${value} ${unit}`;
 }
+
+/**
+ * Get abbreviated version of unit name for compact display
+ */
+export function abbreviateUnit(unit: string | null | undefined): string | null {
+  if (!unit) return null;
+  
+  const lower = unit.toLowerCase().trim();
+  
+  // Common abbreviations
+  const abbreviations: Record<string, string> = {
+    'egg': 'egg',
+    'slice': 'sl',
+    'piece': 'pc',
+    'unit': 'un',
+    'item': 'it',
+    'cup': 'cup',
+    'ounce': 'oz',
+    'pound': 'lb',
+    'cheese': 'ch',
+    'milk': 'ml',
+    'butter': 'bt',
+  };
+  
+  // Check for exact match first
+  if (abbreviations[lower]) {
+    return abbreviations[lower];
+  }
+  
+  // Check if it starts with a known term
+  for (const [key, abbr] of Object.entries(abbreviations)) {
+    if (lower.startsWith(key)) {
+      return abbr;
+    }
+  }
+  
+  // For long names, take first 3 chars + ellipsis
+  if (unit.length > 5) {
+    return unit.slice(0, 3) + '.';
+  }
+  
+  return unit;
+}
+export function sanitizeServingUnit(unit: string | undefined): string | null {
+  if (!unit) return null;
+  
+  const cleaned = unit.trim().toLowerCase();
+  
+  // Filter out only truly meaningless terms, keep countable items like "egg"
+  if (/^(undetermined|unknown|misc|serving|sample|other)(\s|$)/i.test(cleaned)) {
+    return null;
+  }
+  
+  // Remove technical codes (e.g., "cheese undetermined 2423" -> "cheese")
+  const withoutCodes = cleaned
+    .replace(/\s+\d+$/g, '') // Remove trailing numbers
+    .replace(/\bundetermined\b/gi, '') // Remove "undetermined"
+    .trim();
+  
+  if (!withoutCodes || withoutCodes.length === 0) {
+    return null;
+  }
+  
+  // Singularize common units (eggs -> egg, slices -> slice)
+  let singular = withoutCodes;
+  if (singular.endsWith('es')) {
+    singular = singular.slice(0, -2); // "eggs" -> "egg"
+  } else if (singular.endsWith('s')) {
+    // Check if it's a countable item that should be singularized
+    const withoutS = singular.slice(0, -1);
+    if (['egg', 'slice', 'piece', 'item'].includes(withoutS)) {
+      singular = withoutS;
+    }
+  }
+  
+  // Capitalize first letter
+  return singular.charAt(0).toUpperCase() + singular.slice(1);
+}
