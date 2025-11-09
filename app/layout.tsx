@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -10,6 +10,19 @@ export const metadata: Metadata = {
     shortcut: '/nutrix.svg',
     apple: '/nutrix.svg',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Nutrix',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -18,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-gray-900">
+    <html lang="en" className="h-full">
+      <body className="antialiased bg-zinc-950 h-full m-0 p-0">
         <AuthProvider>
           {children}
         </AuthProvider>
