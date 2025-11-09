@@ -7,9 +7,10 @@ interface ProfileSetupProps {
   uid: string;
   email: string;
   onComplete: () => void;
+  onLogout?: () => void;
 }
 
-export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComplete }) => {
+export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComplete, onLogout }) => {
   const [bodyWeight, setBodyWeight] = useState('');
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState('');
   const [targetMonthlyWeightChange, setTargetMonthlyWeightChange] = useState('');
@@ -47,7 +48,9 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComple
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded">
-            {error}
+            <p className="font-semibold text-sm">Error creating profile:</p>
+            <p className="text-sm mt-1">{error}</p>
+            <p className="text-xs text-red-400 mt-2">If the problem persists, try logging out and signing up again.</p>
           </div>
         )}
         
@@ -97,13 +100,25 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComple
           </p>
         </div>
 
-                  <button
+        <div className="flex gap-2 pt-4">
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
+            className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
           >
-          {loading ? 'Creating Profile...' : 'Complete Setup'}
-        </button>
+            {loading ? 'Creating Profile...' : 'Complete Setup'}
+          </button>
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 font-semibold rounded-lg transition"
+              title="Logout and try again"
+            >
+              Logout
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

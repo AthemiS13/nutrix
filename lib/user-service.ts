@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserProfile } from './types';
 
@@ -26,14 +26,44 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
   }
 };
 
+/**
+ * Check if an email is already registered in the system
+ */
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+  try {
+    if (!db) throw new Error('Firestore not initialized');
+    const usersCollection = collection(db as any, 'users');
+    const q = query(usersCollection, where('email', '==', email.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error('Error checking email existence:', error);
+    throw new Error('Failed to verify email. Please try again.');
+  }
+};
+
 export const createUserProfile = async (profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<void> => {
   try {
     if (!db) throw new Error('Firestore not initialized. Cannot create user profile.');
+    
+    // Check if profile already exists for this UID
+    const existingProfile = await getUserProfile(profile.uid);
+    if (existingProfile) {
+      throw new Error('A profile already exists for this account. Please log in instead.');
+    }
+    
+    // Check if email is already registered
+    const emailExists = await checkEmailExists(profile.email);
+    if (emailExists) {
+      throw new Error('This email is already registered. Please use a different email or log in with your existing account.');
+    }
+    
     const docRef = doc(db as any, 'users', profile.uid);
     const now = new Date().toISOString();
     
     await setDoc(docRef, {
       ...profile,
+      email: profile.email.toLowerCase(), // Store email in lowercase for consistency
       createdAt: now,
       updatedAt: now,
     });

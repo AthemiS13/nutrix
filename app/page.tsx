@@ -123,6 +123,7 @@ export default function HomePage() {
             uid={user.uid}
             email={user.email || ''}
             onComplete={loadProfile}
+            onLogout={handleLogout}
           />
         </div>
       </div>
