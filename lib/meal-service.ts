@@ -29,7 +29,8 @@ export const logMeal = async (
       carbohydrates: nutrientsPer100g.carbohydrates * multiplier,
     };
 
-    const mealsRef = collection(db, 'users', userId, 'meals');
+  if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
+  const mealsRef = collection(db as any, 'users', userId, 'meals');
     const now = new Date().toISOString();
     
     const mealData = {
@@ -53,7 +54,8 @@ export const logMeal = async (
 export const getMealsByDate = async (userId: string, date: Date): Promise<MealLog[]> => {
   try {
     const dateString = date.toISOString().split('T')[0];
-    const mealsRef = collection(db, 'users', userId, 'meals');
+    if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
+    const mealsRef = collection(db as any, 'users', userId, 'meals');
     const q = query(
       mealsRef,
       where('date', '==', dateString)
@@ -102,7 +104,8 @@ export const getDailyStats = async (userId: string, date: Date): Promise<DailySt
 
 export const deleteMeal = async (userId: string, mealId: string): Promise<void> => {
   try {
-    const docRef = doc(db, 'users', userId, 'meals', mealId);
+    if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
+    const docRef = doc(db as any, 'users', userId, 'meals', mealId);
     await deleteDoc(docRef);
   } catch (error) {
     console.error('Error deleting meal:', error);
@@ -116,7 +119,8 @@ export const getMealsByDateRange = async (
   endDate: Date
 ): Promise<MealLog[]> => {
   try {
-    const mealsRef = collection(db, 'users', userId, 'meals');
+    if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
+    const mealsRef = collection(db as any, 'users', userId, 'meals');
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     
