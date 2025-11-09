@@ -151,6 +151,30 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
 
   const { totalNutrients, totalMass, nutrientsPer100g } = calculateNutrients(ingredients);
 
+  // Friendly serving unit display: prefer API servingUnit if meaningful,
+  // otherwise fall back to a readable form of the ingredient description.
+  const getFriendlyUnit = (ing: Ingredient) => {
+    if (!ing) return '';
+    const suRaw = (ing.servingUnit || '').toString().trim();
+    const su = suRaw;
+    // If servingUnit looks meaningful (contains letters and not generic codes), use it
+    if (su && /[a-zA-Z]/.test(su) && !/\b(racc|serving|undetermined)\b/i.test(su) && !/^\d+$/.test(su)) {
+      // Capitalize words
+      return su
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
+
+    // Fallback: take the first word from description and pluralize simply
+    const desc = (ing.description || '').split(',')[0].trim();
+    if (!desc) return su || '';
+    // simple plural: if already ends with s leave it, otherwise add s
+    const first = desc.split(' ')[0];
+    if (!first) return desc;
+    return first.endsWith('s') ? first : `${first}s`;
+  };
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
       <h2 className="text-xl font-bold mb-4 text-white">
@@ -240,7 +264,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                   
                   {/* Quantity input */}
                   <div className="flex items-center gap-2">
-                    {item.ingredient.hasNaturalUnit && item.ingredient.servingSize && item.ingredient.servingUnit ? (
+                    {item.ingredient.servingSize && item.ingredient.servingUnit ? (
                       <>
                         <input
                           type="number"
@@ -254,7 +278,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                           min="0"
                           step="0.5"
                         />
-                        <span className="text-zinc-300 font-medium text-sm">{item.ingredient.servingUnit}</span>
+                        <span className="text-zinc-300 font-medium text-sm">{getFriendlyUnit(item.ingredient)}</span>
                         <span className="text-zinc-600 text-xs">({item.mass.toFixed(0)}g)</span>
                       </>
                     ) : (
