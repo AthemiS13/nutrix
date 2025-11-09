@@ -4,7 +4,11 @@ import { UserProfile } from './types';
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
-    const docRef = doc(db, 'users', uid);
+    if (!db) {
+      console.warn('Firestore not initialized. Returning null for user profile.');
+      return null;
+    }
+    const docRef = doc(db as any, 'users', uid);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -24,7 +28,8 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
 export const createUserProfile = async (profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<void> => {
   try {
-    const docRef = doc(db, 'users', profile.uid);
+    if (!db) throw new Error('Firestore not initialized. Cannot create user profile.');
+    const docRef = doc(db as any, 'users', profile.uid);
     const now = new Date().toISOString();
     
     await setDoc(docRef, {
@@ -43,7 +48,8 @@ export const updateUserProfile = async (
   updates: Partial<Omit<UserProfile, 'uid' | 'email' | 'createdAt'>>
 ): Promise<void> => {
   try {
-    const docRef = doc(db, 'users', uid);
+    if (!db) throw new Error('Firestore not initialized. Cannot update user profile.');
+    const docRef = doc(db as any, 'users', uid);
     await updateDoc(docRef, {
       ...updates,
       updatedAt: new Date().toISOString(),
