@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { searchIngredients } from '@/lib/usda-api';
+import { searchIngredients, getIngredientById } from '@/lib/usda-api';
 import { Ingredient, RecipeIngredient } from '@/lib/types';
 import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { calculateNutrients, createRecipe, updateRecipe } from '@/lib/recipe-service';
+import { getDisplayUnit, convertToDisplayUnit, convertToGrams } from '@/lib/unit-utils';
 
 interface RecipeFormProps {
   userId: string;
+  preferredUnit: 'grams' | 'tablespoons';
   recipeId?: string;
   initialName?: string;
   initialIngredients?: RecipeIngredient[];
@@ -17,6 +19,7 @@ interface RecipeFormProps {
 
 export const RecipeForm: React.FC<RecipeFormProps> = ({
   userId,
+  preferredUnit,
   recipeId,
   initialName = '',
   initialIngredients = [],
@@ -71,15 +74,35 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
     }
   };
 
-  const addIngredient = (ingredient: Ingredient) => {
-    const newIngredient: RecipeIngredient = {
-      ingredient,
-      mass: ingredient.servingSize || 100,
-      quantity: ingredient.servingSize ? 1 : undefined,
-    };
-    setIngredients([...ingredients, newIngredient]);
-    setSearchQuery('');
-    setSearchResults([]);
+  const [addingIngredientId, setAddingIngredientId] = useState<number | null>(null);
+
+  const addIngredient = async (ingredient: Ingredient) => {
+    setAddingIngredientId(ingredient.fdcId);
+    try {
+      // Fetch full details only for the selected item
+      const full = await getIngredientById(ingredient.fdcId);
+      const useIng = full || ingredient;
+      const newIngredient: RecipeIngredient = {
+        ingredient: useIng,
+        mass: useIng.servingSize || 100,
+        quantity: useIng.servingSize ? 1 : undefined,
+      };
+      setIngredients([...ingredients, newIngredient]);
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (e) {
+      // Fallback to immediate add if details fail
+      const newIngredient: RecipeIngredient = {
+        ingredient,
+        mass: ingredient.servingSize || 100,
+        quantity: ingredient.servingSize ? 1 : undefined,
+      };
+      setIngredients([...ingredients, newIngredient]);
+      setSearchQuery('');
+      setSearchResults([]);
+    } finally {
+      setAddingIngredientId(null);
+    }
   };
 
   const updateIngredientMass = (index: number, mass: number) => {
@@ -180,7 +203,11 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                   className="w-full text-left px-4 py-3 hover:bg-zinc-700 active:bg-zinc-600 transition flex justify-between items-center border-b border-zinc-700 last:border-0"
                 >
                   <span className="text-white text-sm">{ingredient.description}</span>
-                  <Plus className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  {addingIngredientId === ingredient.fdcId ? (
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+                  ) : (
+                    <Plus className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  )}
                 </button>
               ))}
             </div>
@@ -213,7 +240,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                   
                   {/* Quantity input */}
                   <div className="flex items-center gap-2">
-                    {item.ingredient.servingSize && item.ingredient.servingUnit ? (
+                    {item.ingredient.hasNaturalUnit && item.ingredient.servingSize && item.ingredient.servingUnit ? (
                       <>
                         <input
                           type="number"
@@ -234,13 +261,29 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                       <>
                         <input
                           type="number"
-                          value={item.mass}
-                          onChange={(e) => updateIngredientMass(index, parseFloat(e.target.value) || 0)}
+                          value={
+                            preferredUnit === 'tablespoons' 
+                              ? convertToDisplayUnit(item.mass, item.ingredient, preferredUnit).value
+                              : item.mass
+                          }
+                          onChange={(e) => {
+                            const inputValue = parseFloat(e.target.value) || 0;
+                            const grams = preferredUnit === 'tablespoons'
+                              ? convertToGrams(inputValue, item.ingredient, 'tbsp')
+                              : inputValue;
+                            updateIngredientMass(index, grams);
+                          }}
                           className="w-24 px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white font-medium focus:border-blue-500 focus:outline-none text-base"
-                          placeholder="100"
+                          placeholder={preferredUnit === 'tablespoons' ? '1' : '100'}
                           min="0"
+                          step={preferredUnit === 'tablespoons' ? '0.5' : '1'}
                         />
-                        <span className="text-zinc-300 font-medium text-sm">grams</span>
+                        <span className="text-zinc-300 font-medium text-sm">
+                          {preferredUnit === 'tablespoons' ? 'tbsp' : 'g'}
+                        </span>
+                        {preferredUnit === 'tablespoons' && (
+                          <span className="text-zinc-600 text-xs">({item.mass.toFixed(0)}g)</span>
+                        )}
                       </>
                     )}
                   </div>

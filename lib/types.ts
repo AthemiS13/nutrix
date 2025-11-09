@@ -4,6 +4,7 @@ export interface UserProfile {
   bodyWeight: number; // in kg
   dailyCalorieGoal: number;
   targetMonthlyWeightChange?: number; // in kg, positive for gain, negative for loss
+  preferredUnit?: 'grams' | 'tablespoons'; // user's preferred measurement unit
   createdAt: string;
   updatedAt: string;
 }
@@ -18,9 +19,10 @@ export interface Nutrient {
 export interface Ingredient {
   fdcId: number;
   description: string;
-  nutrients: Nutrient; // per 100g
+  nutrients: Nutrient; // per 100g or per serving
   servingSize?: number; // grams per serving (e.g., 1 egg = 50g)
-  servingUnit?: string; // e.g., "egg", "cup", "slice", "piece"
+  servingUnit?: string; // e.g., "egg", "cup", "slice", "piece", "tablespoon"
+  hasNaturalUnit?: boolean; // true for countable items like eggs, pieces
 }
 
 export interface RecipeIngredient {

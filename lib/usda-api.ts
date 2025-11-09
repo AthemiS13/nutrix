@@ -1,4 +1,5 @@
 import { Ingredient } from './types';
+import { shouldUseNaturalUnit } from './unit-utils';
 
 const USDA_API_KEY = process.env.NEXT_PUBLIC_USDA_API_KEY;
 const USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
@@ -69,7 +70,7 @@ export const searchIngredients = async (query: string): Promise<Ingredient[]> =>
 
     const data: USDASearchResponse = await response.json();
 
-    // Map results immediately without fetching details (fast)
+    // Fast map results (no per-item detail fetch here)
     const ingredients: Ingredient[] = data.foods.map((food) => {
       const nutrients = {
         calories: 0,
@@ -103,22 +104,9 @@ export const searchIngredients = async (query: string): Promise<Ingredient[]> =>
         description: food.description,
         nutrients,
       };
-
-      // Extract serving size from search results if available
-      if (food.servingSize && food.servingSizeUnit) {
-        ingredient.servingSize = food.servingSize;
-        ingredient.servingUnit = food.servingSizeUnit;
-      } else if (food.foodPortions && food.foodPortions.length > 0) {
-        const bestPortion = food.foodPortions.find((p: any) => 
-          p.modifier && p.gramWeight && !p.modifier.toLowerCase().includes('100')
-        ) || food.foodPortions[0];
-        
-        if (bestPortion && bestPortion.gramWeight) {
-          ingredient.servingSize = bestPortion.gramWeight;
-          ingredient.servingUnit = bestPortion.modifier || 'serving';
-        }
-      }
-
+      // We cannot derive serving info from search results reliably; leave it empty here.
+      // Mark natural unit only if servingUnit was somehow provided (rare in search results).
+      ingredient.hasNaturalUnit = shouldUseNaturalUnit(ingredient);
       ingredientCache.set(food.fdcId, ingredient);
       return ingredient;
     });
@@ -131,11 +119,6 @@ export const searchIngredients = async (query: string): Promise<Ingredient[]> =>
 };
 
 export const getIngredientById = async (fdcId: number): Promise<Ingredient | null> => {
-  // Check cache first
-  if (ingredientCache.has(fdcId)) {
-    return ingredientCache.get(fdcId)!;
-  }
-
   if (!USDA_API_KEY) {
     throw new Error('USDA API key is not configured');
   }
@@ -166,22 +149,22 @@ export const getIngredientById = async (fdcId: number): Promise<Ingredient | nul
       carbohydrates: 0,
     };
 
-    data.foodNutrients.forEach((nutrient) => {
-      const valuePer100g = nutrient.value;
+    // Handle both search and detail shapes (detail uses nested nutrient object and "amount")
+    (data.foodNutrients || []).forEach((fn: any) => {
+      const id: number | undefined = fn.nutrientId ?? fn.nutrient?.id;
+      const numberCode: string | undefined = fn.nutrientNumber ?? fn.nutrient?.number;
+      const valuePer100g: number = (fn.value ?? fn.amount) as number;
 
-      switch (nutrient.nutrientId) {
-        case NUTRIENT_IDS.ENERGY:
-          nutrients.calories = valuePer100g;
-          break;
-        case NUTRIENT_IDS.PROTEIN:
-          nutrients.protein = valuePer100g;
-          break;
-        case NUTRIENT_IDS.FAT:
-          nutrients.fats = valuePer100g;
-          break;
-        case NUTRIENT_IDS.CARBS:
-          nutrients.carbohydrates = valuePer100g;
-          break;
+      const pick = (nutrientId?: number, numberStr?: string) =>
+        nutrientId === NUTRIENT_IDS.ENERGY || numberStr === '208' ? 'calories'
+        : nutrientId === NUTRIENT_IDS.PROTEIN || numberStr === '203' ? 'protein'
+        : nutrientId === NUTRIENT_IDS.FAT || numberStr === '204' ? 'fats'
+        : nutrientId === NUTRIENT_IDS.CARBS || numberStr === '205' ? 'carbohydrates'
+        : undefined;
+
+      const key = pick(id, numberCode);
+      if (key && typeof valuePer100g === 'number') {
+        (nutrients as any)[key] = valuePer100g;
       }
     });
 
@@ -191,7 +174,34 @@ export const getIngredientById = async (fdcId: number): Promise<Ingredient | nul
       nutrients,
     };
 
-    // Cache the ingredient
+    // Extract detailed serving size information
+    if (data.servingSize && data.servingSizeUnit) {
+      ingredient.servingSize = data.servingSize;
+      ingredient.servingUnit = data.servingSizeUnit;
+    } else if (data.foodPortions && data.foodPortions.length > 0) {
+      // Prefer portions that represent natural/countable units with amount 1
+      const portions = data.foodPortions as any[];
+      const naturalNames = ['egg','piece','slice','unit'];
+      let bestPortion = portions.find(p => p.gramWeight && p.amount === 1 && p.measureUnit?.name && naturalNames.includes(String(p.measureUnit.name).toLowerCase()))
+        || portions.find(p => p.gramWeight && p.amount === 1 && p.measureUnit?.name)
+        || portions.find(p => p.gramWeight)
+        || portions[0];
+
+      if (bestPortion && bestPortion.gramWeight) {
+        ingredient.servingSize = bestPortion.gramWeight;
+        const mu = bestPortion.measureUnit?.name ? String(bestPortion.measureUnit.name).toLowerCase() : '';
+        const mod = bestPortion.modifier ? String(bestPortion.modifier).toLowerCase() : '';
+        const combined = [mu, mod].filter(Boolean).join(' ').trim();
+        ingredient.servingUnit = combined || mu || mod || 'serving';
+      }
+    }
+
+    // No fallbacks: rely strictly on USDA-provided serving information
+
+    // Mark if this ingredient has a natural countable unit
+    ingredient.hasNaturalUnit = shouldUseNaturalUnit(ingredient);
+
+    // Cache the detailed ingredient
     ingredientCache.set(fdcId, ingredient);
 
     return ingredient;

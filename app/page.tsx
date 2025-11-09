@@ -248,6 +248,7 @@ export default function HomePage() {
           {currentView === 'create-recipe' && (
             <RecipeForm
               userId={user.uid}
+              preferredUnit={userProfile.preferredUnit || 'grams'}
               recipeId={editingRecipe?.id}
               initialName={editingRecipe?.name}
               initialIngredients={editingRecipe?.ingredients}

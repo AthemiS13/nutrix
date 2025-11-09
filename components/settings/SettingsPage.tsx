@@ -22,12 +22,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     bodyWeight: userProfile.bodyWeight.toString(),
     dailyCalorieGoal: userProfile.dailyCalorieGoal.toString(),
     targetMonthlyWeightChange: userProfile.targetMonthlyWeightChange?.toString() || '0',
+    preferredUnit: userProfile.preferredUnit || 'grams',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -47,6 +48,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         bodyWeight: parseFloat(formData.bodyWeight),
         dailyCalorieGoal: parseInt(formData.dailyCalorieGoal),
         targetMonthlyWeightChange: parseFloat(formData.targetMonthlyWeightChange) || undefined,
+        preferredUnit: formData.preferredUnit as 'grams' | 'tablespoons',
       };
 
       await updateUserProfile(userId, updatedProfile);
@@ -142,6 +144,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               />
               <p className="text-xs text-gray-500 mt-1">
                 Positive for weight gain, negative for weight loss, 0 to maintain
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Preferred Measurement Unit
+              </label>
+              <select
+                name="preferredUnit"
+                value={formData.preferredUnit}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="grams">Grams (g)</option>
+                <option value="tablespoons">Tablespoons (tbsp)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Your preferred unit for ingredient measurements (countable items like eggs will use natural units)
               </p>
             </div>
           </div>
