@@ -35,7 +35,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Guard: `auth` may be undefined during static build / server-side execution.
+    // We only register the listener on the client when auth is available.
+    if (!auth) {
+      // No auth available (likely during build). Stop loading so UI can render.
+      setLoading(false);
+      return () => {};
+    }
+
+    const unsubscribe = onAuthStateChanged(auth as any, (user) => {
       setUser(user);
       setLoading(false);
     });
@@ -44,21 +52,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signup = async (email: string, password: string): Promise<User> => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    if (!auth) throw new Error('Firebase Auth not initialized');
+    const userCredential = await createUserWithEmailAndPassword(auth as any, email, password);
     return userCredential.user;
   };
 
   const login = async (email: string, password: string): Promise<User> => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    if (!auth) throw new Error('Firebase Auth not initialized');
+    const userCredential = await signInWithEmailAndPassword(auth as any, email, password);
     return userCredential.user;
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (!auth) throw new Error('Firebase Auth not initialized');
+    await signOut(auth as any);
   };
 
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    if (!auth) throw new Error('Firebase Auth not initialized');
+    await sendPasswordResetEmail(auth as any, email);
   };
 
   const value = {
