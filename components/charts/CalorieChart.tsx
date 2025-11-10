@@ -9,6 +9,7 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -19,9 +20,13 @@ interface CalorieChartProps {
     goal: number;
     protein?: number;
   }>;
+  /** metric can be 'calories' or 'protein' */
+  metric?: 'calories' | 'protein';
+  /** optional numeric goal to draw as a reference line */
+  goal?: number;
 }
 
-export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
+export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calories', goal }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -39,8 +44,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
   };
 
   const legendPayload = [
-    { value: 'Consumed', type: 'line', color: '#a3a3a3', id: 'calories' },
-    { value: 'Protein (g)', type: 'line', color: '#60a5fa', id: 'protein' },
+    { value: metric === 'calories' ? 'Calories' : 'Protein (g)', type: 'line', color: metric === 'calories' ? '#a3a3a3' : '#60a5fa', id: metric },
   ];
 
   const renderLegend = (props: any) => {
@@ -77,42 +81,31 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
             tick={{ fill: '#a3a3a3' }}
             // Keep the left axis non-negative so curves don't render below 0
             domain={[0, 'dataMax']}
+            tickFormatter={(v: any) => {
+              // Ensure numeric ticks render without weird padding or scientific notation
+              const n = Number(v) || 0;
+              // For protein (usually small) show integer; for calories show integer with thousands separator
+              return metric === 'protein' ? n.toFixed(0) : n.toLocaleString();
+            }}
           />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            stroke="#a3a3a3"
-            style={{ fontSize: '12px' }}
-            tick={{ fill: '#a3a3a3' }}
-            allowDecimals={false}
-            // clamp axis to non-negative values to avoid curves dipping below 0 due
-            // to interpolation overshoot
-            domain={[0, 'dataMax']}
-          />
+          {/* single-metric chart uses only the primary left axis */}
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#525252' }} />
           <Legend content={renderLegend} />
-          
+
           <Line
             // monotone interpolation avoids overshoot/undershoot which can make lines dip below axis
             type="monotone"
-            dataKey="calories"
-            stroke="#a3a3a3"
+            dataKey={metric}
+            stroke={metric === 'calories' ? '#a3a3a3' : '#60a5fa'}
             strokeWidth={2}
             dot={false}
-            name="Calories"
+            name={metric === 'calories' ? 'Calories' : 'Protein (g)'}
             isAnimationActive={false}
           />
-          <Line
-            type="monotone"
-            dataKey="protein"
-            yAxisId="right"
-            stroke="#60a5fa"
-            strokeWidth={2}
-            dot={false}
-            name="Protein (g)"
-            isAnimationActive={false}
-          />
-          {/* Goal line intentionally removed from the legend/chart per UX request */}
+
+          {typeof goal === 'number' && (
+            <ReferenceLine y={goal} stroke={metric === 'calories' ? '#f97373' : '#f97373'} strokeDasharray="4 4" label={{ position: 'right', value: `Goal ${goal}${metric === 'protein' ? ' g' : ' kcal'}`, fill: '#f97373', fontSize: 12 }} />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

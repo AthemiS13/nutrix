@@ -68,3 +68,24 @@ nav.safe-bottom {
 	bottom: 0;
 }
 
+/* Remove the visible blue focus ring that appears when some SVG/chart
+	 elements receive focus on mobile (tap) or keyboard. We scope this to
+	 Recharts-generated SVGs so we don't remove global focus styles.
+	 Keep in mind removing outlines can hurt keyboard users; we only
+	 remove the ring for visual polish here since the controls have
+	 other accessible affordances. */
+.recharts-wrapper :focus,
+.recharts-wrapper svg :focus {
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+/* Also remove focus from chart legend / interactive nodes that Recharts may
+	 attach tabIndex to on mobile taps (pie slices, legend items). */
+.recharts-legend-item :focus,
+.recharts-legend-item:focus,
+.recharts-surface :focus {
+	outline: none !important;
+	box-shadow: none !important;
+}
+

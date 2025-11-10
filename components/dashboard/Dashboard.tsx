@@ -210,12 +210,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
         </div>
       </div>
 
-      {/* 7-Day Calorie Trend */}
-      <div className="bg-neutral-900 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-neutral-50 mb-4">7-Day Calorie Trend</h3>
-        <div className="h-64">
-          <CalorieChart data={chartCalorieData} />
+      {/* 7-Day Trends: Calories & Protein */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-neutral-900 p-6 rounded-lg">
+          <h3 className="text-lg font-semibold text-neutral-50 mb-4">7-Day Calories</h3>
+          <div className="h-56">
+            <CalorieChart data={chartCalorieData} metric="calories" goal={userProfile.dailyCalorieGoal} />
+          </div>
         </div>
+
+        {userProfile.dailyProteinGoal && (
+          <div className="bg-neutral-900 p-6 rounded-lg">
+            <h3 className="text-lg font-semibold text-neutral-50 mb-4">7-Day Protein</h3>
+            <div className="h-56">
+              <CalorieChart data={chartCalorieData} metric="protein" goal={userProfile.dailyProteinGoal} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Meal Log */}
