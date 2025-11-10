@@ -218,25 +218,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
         {stats.meals.length === 0 ? (
           <p className="text-neutral-400 text-center py-4">No meals logged yet today</p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3">
             {stats.meals.map((meal) => (
-              <div key={meal.id} className="bg-neutral-800 p-4 rounded-lg flex justify-between items-start">
-                <div className="flex-1">
-                  <h4 className="text-neutral-50 font-semibold">{meal.recipeName}</h4>
-                  <p className="text-neutral-400 text-sm">{meal.mass}g</p>
-                  <div className="mt-2 flex gap-4 text-sm">
-                    <span className="text-neutral-400">{meal.nutrients.calories.toFixed(0)} kcal</span>
-                    <span className="text-neutral-400">P: {meal.nutrients.protein.toFixed(1)}g</span>
-                    <span className="text-neutral-400">F: {meal.nutrients.fats.toFixed(1)}g</span>
-                    <span className="text-neutral-400">C: {meal.nutrients.carbohydrates.toFixed(1)}g</span>
+              <div
+                key={meal.id}
+                className="bg-neutral-800 p-3 rounded-lg hover:bg-neutral-700 transition"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-neutral-50">{meal.recipeName}</h4>
+                    <p className="text-neutral-400 text-xs">{meal.mass}g</p>
+                  </div>
+                  <div className="flex items-start">
+                    {/* keep delete option, but remove colored accent */}
+                    <button
+                      onClick={() => handleDeleteMeal(meal.id)}
+                      className="text-neutral-400 hover:text-neutral-50 p-1"
+                      title="Delete meal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteMeal(meal.id)}
-                  className="text-red-400 hover:text-red-300 p-2"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 pt-2 border-t border-neutral-800">
+                  <div>
+                    <p className="text-neutral-400 text-xs">Calories</p>
+                    <p className="text-neutral-50 text-sm font-bold">{meal.nutrients.calories.toFixed(0)} kcal</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-400 text-xs">Protein</p>
+                    <p className="text-neutral-50 text-sm font-semibold">{meal.nutrients.protein.toFixed(1)}g</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-400 text-xs">Fats</p>
+                    <p className="text-neutral-50 text-sm font-semibold">{meal.nutrients.fats.toFixed(1)}g</p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-400 text-xs">Carbs</p>
+                    <p className="text-neutral-50 text-sm font-semibold">{meal.nutrients.carbohydrates.toFixed(1)}g</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
