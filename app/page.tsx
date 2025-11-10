@@ -100,15 +100,15 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl p-6">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center mb-3">
-                <img src="/nutrix.svg" alt="Nutrix Logo" className="w-96 h-96 brightness-0 invert" />
-              </div>
-              <p className="text-neutral-400 text-sm">Track your nutrition, reach your goals</p>
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center mb-4">
+              <img src="/nutrix.svg" alt="Nutrix Logo" className="w-32 h-32 brightness-0 invert" />
             </div>
+            <p className="text-neutral-400 text-base">Track your nutrition, reach your goals</p>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-6">
             <AuthForms />
           </div>
         </div>
