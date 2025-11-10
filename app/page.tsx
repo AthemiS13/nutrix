@@ -290,16 +290,16 @@ export default function HomePage() {
       {/* Bottom Navigation for Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 z-50 safe-bottom anchor-bottom-safe">
         {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
-        <div className="grid grid-cols-5 gap-1 p-1 pb-1">
+        <div className="grid grid-cols-5 gap-0 p-0.5 pb-1">
           <button
             onClick={() => setCurrentView('dashboard')}
             aria-current={currentView === 'dashboard' ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+            className={`flex flex-col items-center gap-0 px-1 py-1 transition ${
               currentView === 'dashboard' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
             <Home className="w-4 h-4" />
-            <span className="text-[10px]">Dashboard</span>
+            <span className="text-[10px] hidden md:block">Dashboard</span>
           </button>
 
           <button
@@ -308,12 +308,12 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'log-meal' ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+            className={`flex flex-col items-center gap-0 px-1 py-1 transition ${
               currentView === 'log-meal' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
             <PlusCircle className="w-4 h-4" />
-            <span className="text-[10px]">Log Meal</span>
+            <span className="text-[10px] hidden md:block">Log Meal</span>
           </button>
 
           <button
@@ -322,12 +322,12 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'recipes' || currentView === 'create-recipe' ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+            className={`flex flex-col items-center gap-0 px-1 py-1 transition ${
               currentView === 'recipes' || currentView === 'create-recipe' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span className="text-[10px]">Recipes</span>
+            <span className="text-[10px] hidden md:block">Recipes</span>
           </button>
 
           <button
@@ -336,12 +336,12 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'social' ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+            className={`flex flex-col items-center gap-0 px-1 py-1 transition ${
               currentView === 'social' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span className="text-[10px]">Social</span>
+            <span className="text-[10px] hidden md:block">Social</span>
           </button>
 
           <button
@@ -350,12 +350,12 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'settings' ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+            className={`flex flex-col items-center gap-0 px-1 py-1 transition ${
               currentView === 'settings' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
             <Settings className="w-4 h-4" />
-            <span className="text-[10px]">Settings</span>
+            <span className="text-[10px] hidden md:block">Settings</span>
           </button>
         </div>
       </nav>

@@ -49,6 +49,14 @@ nav.safe-bottom {
 	will-change: transform;
 }
 
+/* Nudge the fixed nav slightly downward on devices with a home indicator
+	 so it visually sits closer to the phone's rounded corners without
+	 clipping the interactive area. The translate uses half the inset so
+	 we don't push the nav outside the viewport. */
+nav.safe-bottom {
+	transform: translateY(calc(env(safe-area-inset-bottom, 0px) * 0.5));
+}
+
 /* Utility to anchor fixed elements to the true bottom in case some browsers
 	 report a non-zero inset via bottom env(). Use with caution; we prefer
 	 padding so elements aren't visually clipped. */
