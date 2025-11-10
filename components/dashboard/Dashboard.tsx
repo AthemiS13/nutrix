@@ -7,6 +7,7 @@ import { MacroChart } from '@/components/charts/MacroChart';
 import { CalorieChart } from '@/components/charts/CalorieChart';
 import { ProteinProgress } from '@/components/charts/ProteinProgress';
 import { format, subDays } from 'date-fns';
+import { getColorFromPct } from '@/lib/color-utils';
 import { Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DashboardProps {
@@ -77,25 +78,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
     ? (stats.totalProtein / userProfile.dailyProteinGoal) * 100
     : undefined;
 
-  const getHueForPct = (pct: number) => {
-    // Map pct to hue: 0 -> red (0deg), 50 -> yellow (~60deg), 100 -> green (120deg).
-    // If pct > 100, shift back towards red more rapidly (reach full red at maxOverPct)
-    const clamp = (v: number, a = 0, b = 150) => Math.max(a, Math.min(b, v));
-    const maxOverPct = 150; // reach red again at 150% instead of 200%
-    pct = clamp(pct, 0, maxOverPct);
-    if (pct <= 100) {
-      return (pct / 100) * 120; // 0..120
-    }
-    // pct in (100..maxOverPct] -> map 0..(maxOverPct-100) back to 120..0
-    const over = (pct - 100) / (maxOverPct - 100); // 0..1
-    return (1 - over) * 120;
-  };
-
-  const getColorFromPct = (pct: number) => {
-    const hue = getHueForPct(pct);
-    // Use slightly desaturated, not too bright
-    return `hsl(${hue.toFixed(0)} 60% 50%)`;
-  };
+  // use shared color util for goal/gradient colors
 
   // Prepare data for recharts
   const chartCalorieData = weeklyData.map((day) => ({
@@ -188,7 +171,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
             <div className="mt-4 grid grid-cols-3 gap-4">
               {/* Use same palette as MacroChart for the numeric figures */}
               {(() => {
-                const MACRO_COLORS = ['#60a5fa', '#f59e0b', '#34d399'];
+                const MACRO_COLORS = ['#dad7cd', '#a3b18a', '#588157'];
                 return (
                   <>
                     <div className="text-center">

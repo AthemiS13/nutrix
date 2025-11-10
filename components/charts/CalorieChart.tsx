@@ -12,6 +12,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
+import { getColorFromPct, MET_GOAL_COLOR } from '@/lib/color-utils';
 
 interface CalorieChartProps {
   data: Array<{
@@ -44,7 +45,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
   };
 
   const legendPayload = [
-    { value: metric === 'calories' ? 'Calories' : 'Protein (g)', type: 'line', color: metric === 'calories' ? '#a3a3a3' : '#60a5fa', id: metric },
+    { value: metric === 'calories' ? 'Calories' : 'Protein (g)', type: 'line', color: metric === 'calories' ? '#00798c' : '#d1495b', id: metric },
   ];
 
   const renderLegend = (props: any) => {
@@ -53,7 +54,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
     // filter out 'Goal' series if present
     const items = payload.filter((p: any) => p && p.value && p.value !== 'Goal');
     return (
-      <div style={{ display: 'flex', gap: 12, paddingTop: 12 }}>
+      <div style={{ display: 'flex', gap: 12, paddingTop: 12, paddingBottom: 12 }}>
         {items.map((item: any, i: number) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f5f5f5', fontSize: 12 }}>
             <span style={{ width: 10, height: 10, background: item.color, borderRadius: 4, display: 'inline-block' }} />
@@ -65,9 +66,10 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
   };
 
   return (
-    <div className="w-full h-full min-h-[250px]">
+    <div className="w-full h-full min-h-[250px] flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+  {/* minimize left margin and set explicit Y-axis width */}
+  <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#404040" vertical={false} />
           <XAxis
             dataKey="date"
@@ -79,6 +81,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
             stroke="#a3a3a3"
             style={{ fontSize: '12px' }}
             tick={{ fill: '#a3a3a3' }}
+            width={50}
             // Keep the left axis non-negative so curves don't render below 0
             domain={[0, 'dataMax']}
             tickFormatter={(v: any) => {
@@ -96,7 +99,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
             // monotone interpolation avoids overshoot/undershoot which can make lines dip below axis
             type="monotone"
             dataKey={metric}
-            stroke={metric === 'calories' ? '#a3a3a3' : '#60a5fa'}
+            stroke={metric === 'calories' ? '#00798c' : '#d1495b'}
             strokeWidth={2}
             dot={false}
             name={metric === 'calories' ? 'Calories' : 'Protein (g)'}
@@ -104,7 +107,11 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
           />
 
           {typeof goal === 'number' && (
-            <ReferenceLine y={goal} stroke={metric === 'calories' ? '#f97373' : '#f97373'} strokeDasharray="4 4" label={{ position: 'right', value: `Goal ${goal}${metric === 'protein' ? ' g' : ' kcal'}`, fill: '#f97373', fontSize: 12 }} />
+            <ReferenceLine
+              y={goal}
+              stroke="#f87171"
+              strokeDasharray="4 4"
+            />
           )}
         </LineChart>
       </ResponsiveContainer>

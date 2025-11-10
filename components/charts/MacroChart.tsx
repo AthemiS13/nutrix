@@ -22,8 +22,8 @@ export const MacroChart: React.FC<MacroChartProps> = ({ protein, fats, carbs }) 
     { name: 'Carbs', value: carbsCals, percentage: totalCals > 0 ? ((carbsCals / totalCals) * 100).toFixed(1) : 0 },
   ];
 
-  // Improved, more distinct palette: protein (blue), fats (amber), carbs (green)
-  const COLORS = ['#60a5fa', '#f59e0b', '#34d399'];
+  // Color palette: protein (dad7cd), fats (a3b18a), carbs (588157)
+  const COLORS = ['#dad7cd', '#a3b18a', '#588157'];
 
   // static, no tooltip or interaction per new UX
 
