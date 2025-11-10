@@ -89,3 +89,36 @@ nav.safe-bottom {
 	box-shadow: none !important;
 }
 
+/*
+	Hide native scrollbars on mobile / touch devices to provide an app-like
+	experience. We keep content scrollable but remove the persistent white
+	scrollbar that can appear on some platforms when used like an app.
+
+	- For Firefox: scrollbar-width: none
+	- For IE/Edge legacy: -ms-overflow-style: none
+	- For WebKit: set scrollbar width/height to 0 and transparent track
+
+	We scope this to smaller viewports and coarse pointers to avoid hiding
+	scrollbars for desktop users who rely on them.
+*/
+@media (max-width: 1024px) and (pointer: coarse) {
+	html, body, #__next {
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE 10+ */
+	}
+
+	/* WebKit browsers */
+	html::-webkit-scrollbar,
+	body::-webkit-scrollbar,
+	#__next::-webkit-scrollbar {
+		width: 0;
+		height: 0;
+		background: transparent;
+	}
+
+	/* Smooth native-like scrolling on iOS */
+	* {
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
