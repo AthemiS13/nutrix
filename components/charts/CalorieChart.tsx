@@ -17,6 +17,7 @@ interface CalorieChartProps {
     date: string;
     calories: number;
     goal: number;
+    protein?: number;
   }>;
 }
 
@@ -28,13 +29,35 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
           <p className="text-neutral-50 text-sm font-semibold">{payload[0].payload.date}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(0)} kcal
+              {entry.name}: {entry.dataKey === 'protein' ? `${entry.value.toFixed(1)} g` : `${entry.value.toFixed(0)} kcal`}
             </p>
           ))}
         </div>
       );
     }
     return null;
+  };
+
+  const legendPayload = [
+    { value: 'Consumed', type: 'line', color: '#a3a3a3', id: 'calories' },
+    { value: 'Protein (g)', type: 'line', color: '#60a5fa', id: 'protein' },
+  ];
+
+  const renderLegend = (props: any) => {
+    const { payload } = props || {};
+    if (!payload || !payload.length) return null;
+    // filter out 'Goal' series if present
+    const items = payload.filter((p: any) => p && p.value && p.value !== 'Goal');
+    return (
+      <div style={{ display: 'flex', gap: 12, paddingTop: 12 }}>
+        {items.map((item: any, i: number) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f5f5f5', fontSize: 12 }}>
+            <span style={{ width: 10, height: 10, background: item.color, borderRadius: 4, display: 'inline-block' }} />
+            <span>{item.value}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -53,10 +76,16 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
             style={{ fontSize: '12px' }}
             tick={{ fill: '#a3a3a3' }}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#525252' }} />
-          <Legend
-            wrapperStyle={{ color: '#f5f5f5', fontSize: '12px', paddingTop: '16px' }}
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#a3a3a3"
+            style={{ fontSize: '12px' }}
+            tick={{ fill: '#a3a3a3' }}
+            allowDecimals={false}
           />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#525252' }} />
+          <Legend content={renderLegend} />
           <Line
             type="natural"
             dataKey="calories"
@@ -64,6 +93,16 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={false}
             name="Consumed"
+            isAnimationActive={false}
+          />
+          <Line
+            type="natural"
+            dataKey="protein"
+            yAxisId="right"
+            stroke="#60a5fa"
+            strokeWidth={2}
+            dot={false}
+            name="Protein (g)"
             isAnimationActive={false}
           />
           <Line

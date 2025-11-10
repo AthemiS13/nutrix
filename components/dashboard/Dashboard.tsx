@@ -73,11 +73,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
   const calorieProgress = (stats.totalCalories / userProfile.dailyCalorieGoal) * 100;
   const remainingCalories = userProfile.dailyCalorieGoal - stats.totalCalories;
 
+  const proteinProgress = userProfile.dailyProteinGoal
+    ? (stats.totalProtein / userProfile.dailyProteinGoal) * 100
+    : undefined;
+
+  const getHueForPct = (pct: number) => {
+    // Map pct to hue: 0 -> red (0deg), 50 -> yellow (~60deg), 100 -> green (120deg).
+    // If pct > 100, map back towards red: overPct fraction will reduce hue back to red.
+    const clamp = (v: number, a = 0, b = 200) => Math.max(a, Math.min(b, v));
+    pct = clamp(pct, 0, 200);
+    if (pct <= 100) {
+      return (pct / 100) * 120; // 0..120
+    }
+    // pct in (100..200] -> map 0..100 back to 120..0
+    const over = (pct - 100) / 100; // 0..1
+    return (1 - over) * 120;
+  };
+
+  const getColorFromPct = (pct: number) => {
+    const hue = getHueForPct(pct);
+    // Use slightly desaturated, not too bright
+    return `hsl(${hue.toFixed(0)} 60% 50%)`;
+  };
+
   // Prepare data for recharts
   const chartCalorieData = weeklyData.map((day) => ({
     date: format(new Date(day.date), 'EEE'),
     calories: day.totalCalories,
     goal: userProfile.dailyCalorieGoal,
+    protein: day.totalProtein,
   }));
 
   return (
@@ -102,35 +126,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
         </button>
       </div>
 
-      {/* Calorie Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Calories & Protein Overview - separate matching cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Calories Card */}
         <div className="bg-neutral-900 p-6 rounded-lg">
-          <p className="text-neutral-400 text-sm mb-2">Calories Consumed</p>
-          <p className="text-3xl font-bold text-neutral-50">{stats.totalCalories.toFixed(0)}</p>
-          <div className="mt-2 bg-neutral-800 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${
-                calorieProgress > 100 ? 'bg-red-500' : 'bg-neutral-400'
-              }`}
-              style={{ width: `${Math.min(calorieProgress, 100)}%` }}
-            />
+          <p className="text-neutral-400 text-sm mb-2">Calories</p>
+          <p className="text-3xl font-bold text-neutral-50">{stats.totalCalories.toFixed(0)} kcal</p>
+          <p className="text-sm text-neutral-400 mt-1">Goal: {userProfile.dailyCalorieGoal} kcal • Remaining: {Math.abs(remainingCalories).toFixed(0)} {remainingCalories >= 0 ? 'kcal left' : 'kcal over'}</p>
+
+          <div className="mt-4">
+            <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-3 rounded-full transition-all"
+                style={{
+                  width: `${Math.min(calorieProgress, 200)}%`,
+                  backgroundColor: getColorFromPct(calorieProgress),
+                }}
+              />
+            </div>
           </div>
         </div>
 
+        {/* Protein Card */}
         <div className="bg-neutral-900 p-6 rounded-lg">
-          <p className="text-neutral-400 text-sm mb-2">Daily Goal</p>
-          <p className="text-3xl font-bold text-neutral-50">{userProfile.dailyCalorieGoal}</p>
-          <p className="text-sm text-neutral-400 mt-2">kcal target</p>
-        </div>
-
-        <div className="bg-neutral-900 p-6 rounded-lg">
-          <p className="text-neutral-400 text-sm mb-2">Remaining</p>
-          <p className="text-3xl font-bold text-neutral-50">
-            {Math.abs(remainingCalories).toFixed(0)}
-          </p>
-          <p className="text-sm text-neutral-400 mt-2">
-            {remainingCalories >= 0 ? 'kcal left' : 'kcal over'}
-          </p>
+          <p className="text-neutral-400 text-sm mb-2">Protein</p>
+          <p className="text-3xl font-bold text-neutral-50">{stats.totalProtein.toFixed(1)} g</p>
+          {userProfile.dailyProteinGoal ? (
+            <>
+              <p className="text-sm text-neutral-400 mt-1">Goal: {userProfile.dailyProteinGoal} g</p>
+              <div className="mt-4">
+                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-3 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(proteinProgress ?? 0, 200)}%`,
+                      backgroundColor: getColorFromPct(proteinProgress ?? 0),
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-neutral-400 mt-1">No protein goal set</p>
+          )}
         </div>
       </div>
 
