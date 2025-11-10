@@ -79,14 +79,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
 
   const getHueForPct = (pct: number) => {
     // Map pct to hue: 0 -> red (0deg), 50 -> yellow (~60deg), 100 -> green (120deg).
-    // If pct > 100, map back towards red: overPct fraction will reduce hue back to red.
-    const clamp = (v: number, a = 0, b = 200) => Math.max(a, Math.min(b, v));
-    pct = clamp(pct, 0, 200);
+    // If pct > 100, shift back towards red more rapidly (reach full red at maxOverPct)
+    const clamp = (v: number, a = 0, b = 150) => Math.max(a, Math.min(b, v));
+    const maxOverPct = 150; // reach red again at 150% instead of 200%
+    pct = clamp(pct, 0, maxOverPct);
     if (pct <= 100) {
       return (pct / 100) * 120; // 0..120
     }
-    // pct in (100..200] -> map 0..100 back to 120..0
-    const over = (pct - 100) / 100; // 0..1
+    // pct in (100..maxOverPct] -> map 0..(maxOverPct-100) back to 120..0
+    const over = (pct - 100) / (maxOverPct - 100); // 0..1
     return (1 - over) * 120;
   };
 
@@ -158,7 +159,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
               />
             </div>
 
-            <p className="text-xs text-neutral-400 mt-1">{stats.totalCalories > userProfile.dailyCalorieGoal ? 'goal met' : 'of goal'}</p>
+            {/* keep the top-right small label; remove the duplicate under the bar */}
           </div>
         </div>
       </div>
