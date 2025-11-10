@@ -92,7 +92,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
             stroke="#a3a3a3"
             strokeWidth={2}
             dot={false}
-            name="Consumed"
+            name="Calories"
             isAnimationActive={false}
           />
           <Line
@@ -105,16 +105,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data }) => {
             name="Protein (g)"
             isAnimationActive={false}
           />
-          <Line
-            type="linear"
-            dataKey="goal"
-            stroke="#737373"
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            name="Goal"
-            isAnimationActive={false}
-          />
+          {/* Goal line intentionally removed from the legend/chart per UX request */}
         </LineChart>
       </ResponsiveContainer>
     </div>

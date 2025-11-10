@@ -126,16 +126,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
         </button>
       </div>
 
-      {/* Calories & Protein Overview - separate matching cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Calories Card */}
+      {/* Calories Overview (styled like ProteinProgress) */}
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-neutral-900 p-6 rounded-lg">
-          <p className="text-neutral-400 text-sm mb-2">Calories</p>
-          <p className="text-3xl font-bold text-neutral-50">{stats.totalCalories.toFixed(0)} kcal</p>
-          <p className="text-sm text-neutral-400 mt-1">Goal: {userProfile.dailyCalorieGoal} kcal • Remaining: {Math.abs(remainingCalories).toFixed(0)} {remainingCalories >= 0 ? 'kcal left' : 'kcal over'}</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-neutral-400 text-sm mb-1">Calories Intake</p>
+              <p className="text-3xl font-bold text-neutral-50">
+                {stats.totalCalories.toFixed(0)}
+                <span className="text-lg text-neutral-400 ml-2">/ {userProfile.dailyCalorieGoal} kcal</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-neutral-50">
+                {calorieProgress > 100 ? '✓' : `${Math.round(calorieProgress)}%`}
+              </p>
+              <p className="text-xs text-neutral-400 mt-1">{stats.totalCalories > userProfile.dailyCalorieGoal ? 'goal met' : 'to go'}</p>
+            </div>
+          </div>
 
-          <div className="mt-4">
-            <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
+          <div className="space-y-2">
+            <div className="bg-neutral-800 rounded-full h-3 overflow-hidden">
               <div
                 className="h-3 rounded-full transition-all"
                 style={{
@@ -144,31 +155,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
                 }}
               />
             </div>
-          </div>
-        </div>
 
-        {/* Protein Card */}
-        <div className="bg-neutral-900 p-6 rounded-lg">
-          <p className="text-neutral-400 text-sm mb-2">Protein</p>
-          <p className="text-3xl font-bold text-neutral-50">{stats.totalProtein.toFixed(1)} g</p>
-          {userProfile.dailyProteinGoal ? (
-            <>
-              <p className="text-sm text-neutral-400 mt-1">Goal: {userProfile.dailyProteinGoal} g</p>
-              <div className="mt-4">
-                <div className="w-full bg-neutral-800 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="h-3 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(proteinProgress ?? 0, 200)}%`,
-                      backgroundColor: getColorFromPct(proteinProgress ?? 0),
-                    }}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-neutral-400 mt-1">No protein goal set</p>
-          )}
+            {stats.totalCalories > userProfile.dailyCalorieGoal && (
+              <p className="text-xs text-neutral-400">+{(stats.totalCalories - userProfile.dailyCalorieGoal).toFixed(0)} kcal over goal</p>
+            )}
+          </div>
         </div>
       </div>
 

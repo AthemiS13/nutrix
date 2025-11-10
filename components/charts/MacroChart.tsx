@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState } from 'react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MacroChartProps {
   protein: number;
@@ -22,7 +22,7 @@ export const MacroChart: React.FC<MacroChartProps> = ({ protein, fats, carbs }) 
     { name: 'Carbs', value: carbsCals, percentage: totalCals > 0 ? ((carbsCals / totalCals) * 100).toFixed(1) : 0 },
   ];
 
-  const COLORS = ['#d4d4d8', '#a1a1a1', '#737373'];
+  const COLORS = ['#7ea6d8', '#b39f7a', '#8aa26f'];
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -38,8 +38,15 @@ export const MacroChart: React.FC<MacroChartProps> = ({ protein, fats, carbs }) 
     return null;
   };
 
+  const [selected, setSelected] = useState<number | null>(null);
+
+  const handleClick = (data: any, index: number) => {
+    // toggle selection on tap/click
+    setSelected((prev) => (prev === index ? null : index));
+  };
+
   return (
-    <div className="w-full h-full min-h-[250px] flex items-center justify-center">
+    <div className="w-full h-full min-h-[250px] flex items-center justify-center relative">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -51,22 +58,26 @@ export const MacroChart: React.FC<MacroChartProps> = ({ protein, fats, carbs }) 
             paddingAngle={2}
             dataKey="value"
             label={false}
+            // avoid default active outline by not using activeShape/stroke
+            onClick={handleClick}
+            isAnimationActive={false}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index]} />
+              <Cell key={`cell-${index}`} fill={COLORS[index]} stroke="none" />
             ))}
           </Pie>
+          {/* keep tooltip for hover on desktop, but hide legend; primary reveal is on tap */}
           <Tooltip content={<CustomTooltip />} cursor={false} />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            formatter={(value: string, entry: any) => {
-              return `${value} (${entry.payload.percentage}%)`;
-            }}
-            wrapperStyle={{ color: '#f5f5f5', fontSize: '12px' }}
-          />
         </PieChart>
       </ResponsiveContainer>
+
+      {/* Center overlay to reveal selected slice info on tap */}
+      {selected !== null && data[selected] && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-neutral-900/90 border border-neutral-800 rounded-lg p-3 text-center">
+          <p className="text-neutral-50 font-semibold">{data[selected].name}</p>
+          <p className="text-neutral-400 text-sm">{data[selected].value.toFixed(0)} kcal • {data[selected].percentage}%</p>
+        </div>
+      )}
     </div>
   );
 };
