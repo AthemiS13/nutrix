@@ -45,7 +45,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
   };
 
   const legendPayload = [
-    { value: metric === 'calories' ? 'Calories' : 'Protein (g)', type: 'line', color: metric === 'calories' ? '#00798c' : '#d1495b', id: metric },
+    { value: metric === 'calories' ? 'Calories' : 'Protein (g)', type: 'line', color: metric === 'calories' ? '#a3a3a3' : '#737373', id: metric },
   ];
 
   const renderLegend = (props: any) => {
@@ -99,7 +99,7 @@ export const CalorieChart: React.FC<CalorieChartProps> = ({ data, metric = 'calo
             // monotone interpolation avoids overshoot/undershoot which can make lines dip below axis
             type="monotone"
             dataKey={metric}
-            stroke={metric === 'calories' ? '#00798c' : '#d1495b'}
+            stroke={metric === 'calories' ? '#a3a3a3' : '#737373'}
             strokeWidth={2}
             dot={false}
             name={metric === 'calories' ? 'Calories' : 'Protein (g)'}

@@ -171,7 +171,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
             <div className="mt-4 grid grid-cols-3 gap-4">
               {/* Use same palette as MacroChart for the numeric figures */}
               {(() => {
-                const MACRO_COLORS = ['#dad7cd', '#a3b18a', '#588157'];
+                const MACRO_COLORS = ['#e5e5e5', '#a3a3a3', '#525252'];
                 return (
                   <>
                     <div className="text-center">
