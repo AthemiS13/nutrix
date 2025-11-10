@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserProfile } from '@/lib/user-service';
-import { Loader2, Save, LogOut } from 'lucide-react';
+import { Loader2, Save, LogOut, ChevronDown } from 'lucide-react';
 
 interface SettingsPageProps {
   userId: string;
@@ -174,15 +174,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <label className="block text-sm font-medium text-neutral-400 mb-2">
                 Preferred Measurement Unit
               </label>
-              <select
-                name="preferredUnit"
-                value={formData.preferredUnit}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
-              >
-                <option value="grams">Grams (g)</option>
-                <option value="tablespoons">Tablespoons (tbsp)</option>
-              </select>
+              <div className="relative">
+                <select
+                  name="preferredUnit"
+                  value={formData.preferredUnit}
+                  onChange={handleChange}
+                  className="w-full appearance-none px-4 py-2 pr-10 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                >
+                  <option value="grams">Grams (g)</option>
+                  <option value="tablespoons">Tablespoons (tbsp)</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-neutral-400">
+                  <ChevronDown className="w-4 h-4" />
+                </span>
+              </div>
               <p className="text-xs text-neutral-400 mt-1">
                 Your preferred unit for ingredient measurements (countable items like eggs will use natural units)
               </p>
