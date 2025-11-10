@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Nutrix',
   },
+  // Add themeColor so iOS/Android status bar / standalone background uses the app color
+  themeColor: '#0f172a',
 };
 
 export const viewport: Viewport = {

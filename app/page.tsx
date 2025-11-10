@@ -18,10 +18,11 @@ import {
   Loader2,
   Trash2,
   Edit,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 
-type View = 'dashboard' | 'recipes' | 'log-meal' | 'create-recipe' | 'settings';
+type View = 'dashboard' | 'recipes' | 'log-meal' | 'create-recipe' | 'settings' | 'social';
 
 export default function HomePage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -133,10 +134,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-neutral-950 pb-24">
       {/* Header */}
-      <header className="bg-neutral-950 border-b border-neutral-800 sticky top-0 z-50">
-        <div className="px-4 py-1">
+      <header className="border-b border-neutral-800 sticky top-0 z-50 safe-top" style={{backgroundColor: 'var(--app-bg)'}}>
+        <div className="px-4 py-0.5">
           <div className="flex items-center justify-center">
-            <img src="/nutrix.svg" alt="Nutrix" className="h-24 brightness-0 invert" />
+            {/* increase logo by ~10% from 4.4rem -> 4.84rem */}
+            <img src="/nutrix.svg" alt="Nutrix" className="h-[4.84rem] brightness-0 invert" />
           </div>
         </div>
       </header>
@@ -265,6 +267,15 @@ export default function HomePage() {
             />
           )}
 
+          {currentView === 'social' && (
+            <div className="space-y-4">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 text-center">
+                <h2 className="text-lg font-semibold text-neutral-50 mb-2">Social</h2>
+                <p className="text-neutral-400 text-sm">Coming soon — friends, leaderboards and sharing.</p>
+              </div>
+            </div>
+          )}
+
           {currentView === 'settings' && (
             <SettingsPage
               userId={user.uid}
@@ -277,60 +288,74 @@ export default function HomePage() {
       </div>
 
       {/* Bottom Navigation for Mobile */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 z-50">
-        <div className="grid grid-cols-4 gap-1 p-2 pb-3">
+      <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 z-50 safe-bottom anchor-bottom-safe">
+        {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
+        <div className="grid grid-cols-5 gap-1 p-1 pb-1">
           <button
             onClick={() => setCurrentView('dashboard')}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition ${
-              currentView === 'dashboard'
-                ? 'bg-neutral-700 text-neutral-50'
-                : 'text-neutral-400'
+            aria-current={currentView === 'dashboard' ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+              currentView === 'dashboard' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <Home className="w-5 h-5" />
-            <span className="text-xs font-medium">Dashboard</span>
+            <Home className="w-4 h-4" />
+            <span className="text-[10px]">Dashboard</span>
           </button>
+
           <button
             onClick={() => {
               setCurrentView('log-meal');
               setEditingRecipe(null);
             }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition ${
-              currentView === 'log-meal'
-                ? 'bg-neutral-700 text-neutral-50'
-                : 'text-neutral-400'
+            aria-current={currentView === 'log-meal' ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+              currentView === 'log-meal' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <PlusCircle className="w-5 h-5" />
-            <span className="text-xs font-medium">Log Meal</span>
+            <PlusCircle className="w-4 h-4" />
+            <span className="text-[10px]">Log Meal</span>
           </button>
+
           <button
             onClick={() => {
               setCurrentView('recipes');
               setEditingRecipe(null);
             }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition ${
-              currentView === 'recipes' || currentView === 'create-recipe'
-                ? 'bg-neutral-700 text-neutral-50'
-                : 'text-neutral-400'
+            aria-current={currentView === 'recipes' || currentView === 'create-recipe' ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+              currentView === 'recipes' || currentView === 'create-recipe' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <BookOpen className="w-5 h-5" />
-            <span className="text-xs font-medium">Recipes</span>
+            <BookOpen className="w-4 h-4" />
+            <span className="text-[10px]">Recipes</span>
           </button>
+
+          <button
+            onClick={() => {
+              setCurrentView('social');
+              setEditingRecipe(null);
+            }}
+            aria-current={currentView === 'social' ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+              currentView === 'social' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span className="text-[10px]">Social</span>
+          </button>
+
           <button
             onClick={() => {
               setCurrentView('settings');
               setEditingRecipe(null);
             }}
-            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition ${
-              currentView === 'settings'
-                ? 'bg-neutral-700 text-neutral-50'
-                : 'text-neutral-400'
+            aria-current={currentView === 'settings' ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 transition ${
+              currentView === 'settings' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <Settings className="w-5 h-5" />
-            <span className="text-xs font-medium">Settings</span>
+            <Settings className="w-4 h-4" />
+            <span className="text-[10px]">Settings</span>
           </button>
         </div>
       </nav>

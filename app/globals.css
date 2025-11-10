@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+/*
+	Ensure the status bar / safe-area on iOS standalone (added to Home Screen)
+	uses the app background and that content is padded away from the
+	Dynamic Island / notch using env(safe-area-inset-*) with fallbacks.
+
+	env(...) returns 0 on platforms without safe-area insets, so this is
+	safe to add globally.
+*/
+
+:root {
+	/* Use the same neutral color variable used by Tailwind in your app so
+	   the header/background match exactly */
+	--app-bg: var(--color-neutral-950);
+}
+
+html, body, #__next {
+	height: 100%;
+	background-color: var(--app-bg);
+}
+
+body {
+	margin: 0;
+	/* don't apply global safe-area padding here — scope to header/footer
+	   so the whole layout doesn't shift unexpectedly (we'll use helpers)
+	*/
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* helper classes in case you want to scope safe-area handling to a header */
+.safe-top {
+	padding-top: constant(safe-area-inset-top);
+	padding-top: env(safe-area-inset-top);
+}
+
+/* Apply to fixed bottom navigation to ensure it sits above the home indicator
+	 / dynamic island. Use padding so the clickable area remains comfortable. */
+.safe-bottom {
+	padding-bottom: constant(safe-area-inset-bottom);
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+nav.safe-bottom {
+	/* help reduce repaint jank when the viewport changes on mobile */
+	-webkit-transform: translateZ(0);
+	transform: translateZ(0);
+	will-change: transform;
+}
+
+/* Utility to anchor fixed elements to the true bottom in case some browsers
+	 report a non-zero inset via bottom env(). Use with caution; we prefer
+	 padding so elements aren't visually clipped. */
+.anchor-bottom-safe {
+	/* Keep the nav element visually anchored to the bottom of the
+		 viewport (bottom: 0). We keep padding on the nav itself to honor
+		 the safe-area so buttons aren't clipped by the home indicator. */
+	bottom: 0;
+}
+
