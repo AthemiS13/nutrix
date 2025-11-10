@@ -290,7 +290,7 @@ export default function HomePage() {
       {/* Bottom Navigation for Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 z-50 safe-bottom anchor-bottom-safe">
         {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
-        <div className="grid grid-cols-5 gap-0 p-0.5 pb-1">
+  <div className="grid grid-cols-5 gap-0 p-1 pb-1">
           <button
             onClick={() => setCurrentView('dashboard')}
             aria-current={currentView === 'dashboard' ? 'page' : undefined}
@@ -298,8 +298,8 @@ export default function HomePage() {
               currentView === 'dashboard' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <Home className="w-4 h-4" />
-            <span className="text-[10px] hidden md:block">Dashboard</span>
+            <Home className="w-6 h-6" />
+            <span className="text-[9px]">Dashboard</span>
           </button>
 
           <button
@@ -312,8 +312,8 @@ export default function HomePage() {
               currentView === 'log-meal' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <PlusCircle className="w-4 h-4" />
-            <span className="text-[10px] hidden md:block">Log Meal</span>
+            <PlusCircle className="w-6 h-6" />
+            <span className="text-[9px]">Log Meal</span>
           </button>
 
           <button
@@ -326,8 +326,8 @@ export default function HomePage() {
               currentView === 'recipes' || currentView === 'create-recipe' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
-            <span className="text-[10px] hidden md:block">Recipes</span>
+            <BookOpen className="w-6 h-6" />
+            <span className="text-[9px]">Recipes</span>
           </button>
 
           <button
@@ -340,8 +340,8 @@ export default function HomePage() {
               currentView === 'social' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <Users className="w-4 h-4" />
-            <span className="text-[10px] hidden md:block">Social</span>
+            <Users className="w-6 h-6" />
+            <span className="text-[9px]">Social</span>
           </button>
 
           <button
@@ -354,8 +354,8 @@ export default function HomePage() {
               currentView === 'settings' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
             }`}
           >
-            <Settings className="w-4 h-4" />
-            <span className="text-[10px] hidden md:block">Settings</span>
+            <Settings className="w-6 h-6" />
+            <span className="text-[9px]">Settings</span>
           </button>
         </div>
       </nav>

@@ -194,7 +194,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-950 font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <>
@@ -212,9 +212,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <button
               type="button"
               onClick={onLogout}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"
+              className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-50 font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-5 h-5 text-red-400" />
               Logout
             </button>
           </div>

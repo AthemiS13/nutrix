@@ -91,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
           <ChevronLeft className="w-5 h-5 text-neutral-50" />
         </button>
         <h2 className="text-xl font-bold text-neutral-50">
-          {format(currentDate, 'EEEE, MMMM d, yyyy')}
+          {format(currentDate, 'EEE, MMM d')}
         </h2>
         <button
           onClick={() => changeDate(1)}
