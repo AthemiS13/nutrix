@@ -13,10 +13,31 @@
 	/* Use the same neutral color variable used by Tailwind in your app so
 	   the header/background match exactly */
 	--app-bg: var(--color-neutral-950);
+	
+	/* Use dvh (dynamic viewport height) to prevent layout shift when keyboard opens.
+	   Falls back to 100vh for browsers that don't support dvh */
+	--app-height: 100vh; /* Fallback for older browsers */
+	--app-height: 100dvh; /* Modern browsers with dvh support */
+	
+	/* Define fixed heights for header and nav to calculate content area */
+	--header-height: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+	--nav-height: calc(env(safe-area-inset-bottom, 0px) + 3rem);
 }
 
+/* Support for older browsers that don't have dvh */
+@supports not (height: 100dvh) {
+	:root {
+		--app-height: 100vh;
+	}
+}
+
+/* Fixed height container to prevent reflow when keyboard appears */
 html, body, #__next {
-	height: 100%;
+	width: 100%;
+	height: var(--app-height);
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
 	background-color: var(--app-bg);
 }
 
@@ -27,6 +48,8 @@ body {
 	*/
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	/* Prevent overscroll bounce */
+	overscroll-behavior: none;
 }
 
 /* helper classes in case you want to scope safe-area handling to a header */
@@ -66,6 +89,79 @@ nav.safe-bottom {
 		 viewport (bottom: 0). We keep padding on the nav itself to honor
 		 the safe-area so buttons aren't clipped by the home indicator. */
 	bottom: 0;
+}
+
+/* App layout components to prevent keyboard-induced layout shift */
+.app-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: var(--app-height);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	/* Prevent ALL scrolling on the container itself */
+	touch-action: none;
+	overscroll-behavior: none;
+}
+
+.app-header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	height: var(--header-height);
+	padding-top: env(safe-area-inset-top, 0px);
+	/* Ensure header stays put during keyboard transitions */
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	/* Prevent scrolling on header */
+	touch-action: none;
+	pointer-events: auto;
+	/* Force position */
+	transform: translate3d(0, 0, 0);
+}
+
+.app-content {
+	position: fixed;
+	top: var(--header-height);
+	bottom: var(--nav-height);
+	left: 0;
+	right: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	-webkit-overflow-scrolling: touch;
+	/* Smooth scrolling behavior */
+	scroll-behavior: smooth;
+	/* Prevent momentum scrolling from affecting layout */
+	overscroll-behavior: contain;
+	/* Allow scrolling only in content area */
+	touch-action: pan-y;
+}
+
+.app-nav {
+	position: fixed;
+	bottom: 0 !important;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	height: var(--nav-height);
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+	/* Ensure nav stays put during keyboard transitions */
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	/* Use GPU acceleration to prevent repaints */
+	transform: translate3d(0, 0, 0);
+	-webkit-transform: translate3d(0, 0, 0);
+	/* Prevent scrolling on nav */
+	touch-action: none;
+	pointer-events: auto;
+	/* Ensure it renders at the true bottom */
+	margin: 0;
 }
 
 /* Remove the visible blue focus ring that appears when some SVG/chart

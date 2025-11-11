@@ -118,7 +118,7 @@ function ResetPasswordContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="app-container bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400 mx-auto mb-4" />
           <p className="text-neutral-400">Verifying reset link...</p>
@@ -129,7 +129,7 @@ function ResetPasswordContent() {
 
   if (verifying || !oobCode) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="app-container bg-neutral-950 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-lg p-8">
           <div className="text-center">
             {error && (
@@ -151,7 +151,7 @@ function ResetPasswordContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="app-container bg-neutral-950 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
           <div className="mb-4">
             <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -174,7 +174,7 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+    <div className="app-container bg-neutral-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-lg p-8">
         <h1 className="text-2xl font-bold text-neutral-50 mb-2 text-center">Reset Password</h1>
         <p className="text-neutral-400 text-center text-sm mb-6">
@@ -279,7 +279,7 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><Loader2 className="animate-spin text-neutral-400" /></div>}>
+    <Suspense fallback={<div className="app-container bg-neutral-950 flex items-center justify-center"><Loader2 className="animate-spin text-neutral-400" /></div>}>
       <ResetPasswordContent />
     </Suspense>
   );

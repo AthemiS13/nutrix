@@ -92,7 +92,7 @@ export default function HomePage() {
 
   if (authLoading || (user && profileLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
+      <div className="app-container flex items-center justify-center bg-neutral-950">
         <Loader2 className="w-12 h-12 animate-spin text-neutral-400" />
       </div>
     );
@@ -100,7 +100,7 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6">
+      <div className="app-container bg-neutral-950 flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4">
@@ -118,7 +118,7 @@ export default function HomePage() {
 
   if (!userProfile) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="app-container bg-neutral-950 flex items-center justify-center p-4">
         <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl p-6">
           <ProfileSetup
             uid={user.uid}
@@ -132,27 +132,24 @@ export default function HomePage() {
   }
 
   return (
-  <div className="min-h-screen bg-neutral-950" style={{paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)'}}>
+    <div className="app-container bg-neutral-950">
       {/* Header (fixed) */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800"
+        className="app-header border-b border-neutral-800"
         style={{
           backgroundColor: 'var(--app-bg)',
-          // header height = image area (3.5rem) + safe-area inset (dynamic)
-          paddingTop: 'env(safe-area-inset-top)',
-          height: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
-          overflow: 'visible'
+          overflow: 'visible',
         }}
       >
-        <div className="px-4 h-full flex items-end justify-center relative">
+        <div className="px-4 h-full flex items-end justify-center relative" style={{pointerEvents: 'none'}}>
           {/* larger logo that overflows the header visually */}
           <img src="/nutrix.svg" alt="Nutrix" className="h-[5.5rem] brightness-0 invert" style={{position: 'relative', bottom: '-0.25rem'}} />
         </div>
       </header>
 
-      <div className="px-4 py-4">
-        {/* Main Content */}
-        <main>
+      {/* Main Content - scrollable area */}
+      <main className="app-content">
+        <div className="px-4 py-4">
           {currentView === 'dashboard' && (
             <Dashboard userId={user.uid} userProfile={userProfile} />
           )}
@@ -291,13 +288,13 @@ export default function HomePage() {
               onLogout={handleLogout}
             />
           )}
-        </main>
-      </div>
+        </div>
+      </main>
 
-  {/* Bottom Navigation for Mobile (fixed) */}
-  <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 z-50 safe-bottom anchor-bottom-safe" style={{height: 'calc(env(safe-area-inset-bottom, 0px) + 3rem)'}}>
-    {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
-  <div className="grid grid-cols-5 gap-0 h-full items-center">
+      {/* Bottom Navigation for Mobile (fixed) */}
+      <nav className="app-nav bg-neutral-900 border-t border-neutral-800">
+        {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
+        <div className="grid grid-cols-5 gap-0 h-full items-center">
           <button
             onClick={() => setCurrentView('dashboard')}
             aria-current={currentView === 'dashboard' ? 'page' : undefined}
