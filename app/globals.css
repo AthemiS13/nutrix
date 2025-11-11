@@ -19,9 +19,11 @@
 	--app-height: 100vh; /* Fallback for older browsers */
 	--app-height: 100dvh; /* Modern browsers with dvh support */
 	
-	/* Define fixed heights for header and nav to calculate content area */
+	/* Define fixed heights for header and nav to calculate content area 
+	   Nav height is just the visual height, safe-area padding is separate */
 	--header-height: calc(env(safe-area-inset-top, 0px) + 3.5rem);
-	--nav-height: calc(env(safe-area-inset-bottom, 0px) + 3rem);
+	--nav-height: 3rem;
+	--nav-safe-area: env(safe-area-inset-bottom, 0px);
 }
 
 /* Support for older browsers that don't have dvh */
@@ -39,6 +41,15 @@ html, body, #__next {
 	padding: 0;
 	overflow: hidden;
 	background-color: var(--app-bg);
+	/* Lock html and body in place - prevent ANY movement */
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	/* Prevent touch scrolling on body */
+	touch-action: none;
+	overscroll-behavior: none;
 }
 
 body {
@@ -100,12 +111,17 @@ nav.safe-bottom {
 	bottom: 0;
 	width: 100%;
 	height: var(--app-height);
+	max-height: var(--app-height);
+	min-height: var(--app-height);
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
 	/* Prevent ALL scrolling on the container itself */
 	touch-action: none;
 	overscroll-behavior: none;
+	/* Lock it in place */
+	transform: translate3d(0, 0, 0);
+	will-change: auto;
 }
 
 .app-header {
@@ -115,6 +131,8 @@ nav.safe-bottom {
 	right: 0;
 	z-index: 1000;
 	height: var(--header-height);
+	max-height: var(--header-height);
+	min-height: var(--header-height);
 	padding-top: env(safe-area-inset-top, 0px);
 	/* Ensure header stays put during keyboard transitions */
 	backface-visibility: hidden;
@@ -122,14 +140,15 @@ nav.safe-bottom {
 	/* Prevent scrolling on header */
 	touch-action: none;
 	pointer-events: auto;
-	/* Force position */
+	/* Force position - critical for mobile */
 	transform: translate3d(0, 0, 0);
+	will-change: auto;
 }
 
 .app-content {
 	position: fixed;
 	top: var(--header-height);
-	bottom: var(--nav-height);
+	bottom: calc(var(--nav-height) + var(--nav-safe-area));
 	left: 0;
 	right: 0;
 	overflow-y: auto;
@@ -141,6 +160,8 @@ nav.safe-bottom {
 	overscroll-behavior: contain;
 	/* Allow scrolling only in content area */
 	touch-action: pan-y;
+	/* Lock content area dimensions */
+	transform: translate3d(0, 0, 0);
 }
 
 .app-nav {
@@ -149,19 +170,24 @@ nav.safe-bottom {
 	left: 0;
 	right: 0;
 	z-index: 1000;
-	height: var(--nav-height);
-	padding-bottom: env(safe-area-inset-bottom, 0px);
+	height: calc(var(--nav-height) + var(--nav-safe-area));
+	max-height: calc(var(--nav-height) + var(--nav-safe-area));
+	min-height: calc(var(--nav-height) + var(--nav-safe-area));
+	padding-bottom: var(--nav-safe-area);
 	/* Ensure nav stays put during keyboard transitions */
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
-	/* Use GPU acceleration to prevent repaints */
+	/* Use GPU acceleration and force exact positioning */
 	transform: translate3d(0, 0, 0);
 	-webkit-transform: translate3d(0, 0, 0);
+	will-change: auto;
 	/* Prevent scrolling on nav */
 	touch-action: none;
 	pointer-events: auto;
-	/* Ensure it renders at the true bottom */
+	/* Additional positioning */
 	margin: 0;
+	display: flex;
+	align-items: stretch;
 }
 
 /* Remove the visible blue focus ring that appears when some SVG/chart

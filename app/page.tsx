@@ -138,10 +138,9 @@ export default function HomePage() {
         className="app-header border-b border-neutral-800"
         style={{
           backgroundColor: 'var(--app-bg)',
-          overflow: 'visible',
         }}
       >
-        <div className="px-4 h-full flex items-end justify-center relative" style={{pointerEvents: 'none'}}>
+        <div className="px-4 h-full flex items-end justify-center relative">
           {/* larger logo that overflows the header visually */}
           <img src="/nutrix.svg" alt="Nutrix" className="h-[5.5rem] brightness-0 invert" style={{position: 'relative', bottom: '-0.25rem'}} />
         </div>
@@ -294,7 +293,7 @@ export default function HomePage() {
       {/* Bottom Navigation for Mobile (fixed) */}
       <nav className="app-nav bg-neutral-900 border-t border-neutral-800">
         {/* compact nav: show color-only active state (no boxes) and add a Social tab */}
-        <div className="grid grid-cols-5 gap-0 h-full items-center">
+        <div className="grid grid-cols-5 gap-0 w-full items-center" style={{height: '100%'}}>
           <button
             onClick={() => setCurrentView('dashboard')}
             aria-current={currentView === 'dashboard' ? 'page' : undefined}

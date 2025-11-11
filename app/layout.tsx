@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ViewportFixProvider } from "./ViewportFixProvider";
 
 export const metadata: Metadata = {
   title: "Nutrix - Calorie & Macro Tracker",
@@ -35,9 +36,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-zinc-950 m-0 p-0">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ViewportFixProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ViewportFixProvider>
       </body>
     </html>
   );
