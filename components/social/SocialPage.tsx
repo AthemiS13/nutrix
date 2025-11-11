@@ -374,10 +374,10 @@ export const SocialPage: React.FC<SocialPageProps> = ({ userId, userProfile, onU
         </h2>
         <button
           onClick={() => setShowAddFriend(!showAddFriend)}
-          className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition"
+          className="p-2 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 rounded-lg transition"
           title="Add friend"
         >
-          {showAddFriend ? <X className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+          {showAddFriend ? <X className="w-5 h-5 text-neutral-50" /> : <UserPlus className="w-5 h-5 text-neutral-50" />}
         </button>
       </div>
 
