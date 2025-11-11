@@ -1,6 +1,8 @@
 export interface UserProfile {
   uid: string;
   email: string;
+  displayName?: string; // user's display name for social features
+  friendCode?: string; // unique code for adding friends
   bodyWeight: number; // in kg
   dailyCalorieGoal: number;
   dailyProteinGoal?: number; // in grams
@@ -9,6 +11,7 @@ export interface UserProfile {
   currentStreak?: number; // consecutive days meeting both calorie and protein goals
   longestStreak?: number; // all-time longest streak
   lastStreakDate?: string; // ISO date string of last successful day
+  friends?: string[]; // array of friend UIDs
   createdAt: string;
   updatedAt: string;
 }

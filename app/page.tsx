@@ -8,6 +8,7 @@ import { Dashboard } from '@/components/dashboard/Dashboard';
 import { RecipeForm } from '@/components/recipe/RecipeForm';
 import { MealLogForm } from '@/components/meals/MealLogForm';
 import { SettingsPage } from '@/components/settings/SettingsPage';
+import { SocialPage } from '@/components/social/SocialPage';
 import { getUserProfile } from '@/lib/user-service';
 import { getUserRecipes, deleteRecipe } from '@/lib/recipe-service';
 import { UserProfile, Recipe } from '@/lib/types';
@@ -271,12 +272,11 @@ export default function HomePage() {
           )}
 
           {currentView === 'social' && (
-            <div className="space-y-4">
-              <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 text-center">
-                <h2 className="text-lg font-semibold text-neutral-50 mb-2">Social</h2>
-                <p className="text-neutral-400 text-sm">Coming soon — friends, leaderboards and sharing.</p>
-              </div>
-            </div>
+            <SocialPage
+              userId={user.uid}
+              userProfile={userProfile}
+              onUpdate={loadProfile}
+            />
           )}
 
           {currentView === 'settings' && (

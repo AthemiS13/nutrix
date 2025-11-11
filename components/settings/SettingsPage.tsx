@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserProfile } from '@/lib/user-service';
-import { Loader2, Save, LogOut, ChevronDown } from 'lucide-react';
+import { Loader2, Save, LogOut, ChevronDown, Copy } from 'lucide-react';
 
 interface SettingsPageProps {
   userId: string;
@@ -19,6 +19,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onLogout,
 }) => {
   const [formData, setFormData] = useState({
+    displayName: userProfile.displayName || '',
     bodyWeight: userProfile.bodyWeight.toString(),
     dailyCalorieGoal: userProfile.dailyCalorieGoal.toString(),
     dailyProteinGoal: userProfile.dailyProteinGoal?.toString() || '',
@@ -28,6 +29,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -46,6 +48,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
     try {
       const updatedProfile: Partial<UserProfile> = {
+        displayName: formData.displayName.trim() || undefined,
         bodyWeight: parseFloat(formData.bodyWeight),
         dailyCalorieGoal: parseInt(formData.dailyCalorieGoal),
         ...(formData.dailyProteinGoal && {
@@ -62,6 +65,44 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       setError(err.message || 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCopyFriendCode = async () => {
+    if (!userProfile.friendCode) return;
+    
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(userProfile.friendCode);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = userProfile.friendCode;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+          textArea.remove();
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+          console.error('Fallback copy failed:', err);
+          textArea.remove();
+          alert('Could not copy to clipboard. Please copy manually: ' + userProfile.friendCode);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Last resort: show alert with the code
+      alert('Could not copy to clipboard. Please copy manually: ' + userProfile.friendCode);
     }
   };
 
@@ -97,6 +138,47 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 className="w-full px-4 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-400 cursor-not-allowed"
               />
               <p className="text-xs text-neutral-400 mt-1">Email cannot be changed</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">Display Name</label>
+              <input
+                type="text"
+                name="displayName"
+                value={formData.displayName}
+                onChange={handleChange}
+                maxLength={50}
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                placeholder="Your name"
+              />
+              <p className="text-xs text-neutral-400 mt-1">This name will be visible to your friends</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">Friend Code</label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={userProfile.friendCode || 'Generating...'}
+                    disabled
+                    className="w-full px-4 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-50 font-mono text-lg tracking-wider cursor-not-allowed"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyFriendCode}
+                  disabled={!userProfile.friendCode}
+                  className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-50 rounded-lg transition disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                  title="Copy friend code"
+                >
+                  <Copy className="w-4 h-4" />
+                  {copySuccess ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-xs text-neutral-400 mt-1">
+                Share this code with friends so they can add you. This code is permanent and unique to your account.
+              </p>
             </div>
           </div>
 

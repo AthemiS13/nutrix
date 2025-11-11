@@ -11,6 +11,7 @@ interface ProfileSetupProps {
 }
 
 export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComplete, onLogout }) => {
+  const [displayName, setDisplayName] = useState('');
   const [bodyWeight, setBodyWeight] = useState('');
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState('');
   const [dailyProteinGoal, setDailyProteinGoal] = useState('');
@@ -27,6 +28,7 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComple
       const profile = {
         uid,
         email,
+        displayName: displayName.trim() || undefined,
         bodyWeight: parseFloat(bodyWeight),
         dailyCalorieGoal: parseInt(dailyCalorieGoal),
         ...(dailyProteinGoal && {
@@ -57,6 +59,24 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ uid, email, onComple
             <p className="text-xs text-red-400 mt-2">If the problem persists, try logging out and signing up again.</p>
           </div>
         )}
+        
+        <div>
+          <label className="block text-sm font-medium text-neutral-400 mb-2">
+            Display Name
+          </label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+            maxLength={50}
+            className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+            placeholder="Your name"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            This name will be visible to your friends
+          </p>
+        </div>
         
         <div>
           <label className="block text-sm font-medium text-neutral-400 mb-2">
