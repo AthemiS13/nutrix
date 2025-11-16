@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { getUserRecipes } from '@/lib/recipe-service';
-import { logMeal } from '@/lib/meal-service';
+import { logMeal, logCustomMeal } from '@/lib/meal-service';
 import { Recipe } from '@/lib/types';
 import { Plus, Loader2, Search, X } from 'lucide-react';
 import { convertToGrams, gramsToTablespoons, shouldUseNaturalUnit, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
@@ -15,6 +15,7 @@ interface MealLogFormProps {
 export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [useManualEntry, setUseManualEntry] = useState<boolean>(false);
   const [mass, setMass] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
@@ -24,9 +25,24 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // Manual entry fields
+  const [manualName, setManualName] = useState('');
+  const [manualMass, setManualMass] = useState('');
+  const [manualCalories, setManualCalories] = useState('');
+  const [manualProtein, setManualProtein] = useState('');
+  const [manualFats, setManualFats] = useState('');
+  const [manualCarbs, setManualCarbs] = useState('');
+
   useEffect(() => {
     loadRecipes();
   }, [userId]);
+
+  // If no recipes available, switch to manual entry after load
+  useEffect(() => {
+    if (!loading && recipes.length === 0) {
+      setUseManualEntry(true);
+    }
+  }, [loading, recipes]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -66,7 +82,53 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (useManualEntry) {
+      // Manual entry validation
+      const mmass = parseFloat(manualMass);
+      const mcal = parseFloat(manualCalories);
+      const mpro = parseFloat(manualProtein);
+      const mfat = parseFloat(manualFats);
+      const mcarb = parseFloat(manualCarbs);
+
+      if (!manualName.trim()) {
+        setError('Please enter a meal name');
+        return;
+      }
+      if (!isFinite(mmass) || mmass <= 0) {
+        setError('Please enter a valid mass in grams');
+        return;
+      }
+      if (![mcal, mpro, mfat, mcarb].every((n) => isFinite(n) && n >= 0)) {
+        setError('Please enter valid macro values');
+        return;
+      }
+
+      setSaving(true);
+      setError('');
+      try {
+        await logCustomMeal(userId, manualName.trim(), mmass, {
+          calories: mcal,
+          protein: mpro,
+          fats: mfat,
+          carbohydrates: mcarb,
+        });
+        // reset
+        setManualName('');
+        setManualMass('');
+        setManualCalories('');
+        setManualProtein('');
+        setManualFats('');
+        setManualCarbs('');
+        setUseManualEntry(false);
+        onSuccess();
+      } catch (err: any) {
+        setError(err.message || 'Failed to log meal');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (!selectedRecipe) {
       setError('Please select a recipe');
       return;
@@ -150,13 +212,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
     );
   }
 
-  if (recipes.length === 0) {
-    return (
-      <div className="bg-neutral-900 p-6 rounded-lg text-center">
-        <p className="text-neutral-400">No recipes found. Create a recipe first to log meals.</p>
-      </div>
-    );
-  }
+  // Render
 
   return (
     <div className="bg-neutral-900 p-6 rounded-lg">
@@ -169,10 +225,11 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
           </div>
         )}
         
-        <div className="recipe-search-container">
-          <label className="block text-sm font-medium text-neutral-400 mb-2">Select Recipe</label>
-          <div className="relative">
+        {!useManualEntry && (
+          <div className="recipe-search-container">
+            <label className="block text-sm font-medium text-neutral-400 mb-2">Select Recipe</label>
             <div className="relative">
+              <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
                 type="text"
@@ -203,42 +260,59 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                   <X className="w-5 h-5" />
                 </button>
               )}
-            </div>
-            
-            {showDropdown && !selectedRecipe && (
-              <div className="absolute z-10 w-full mt-1 bg-neutral-800 border border-neutral-800 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {filteredRecipes.length > 0 ? (
-                  filteredRecipes.map((recipe) => (
-                    <button
-                      key={recipe.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedRecipe(recipe);
-                        setSearchQuery('');
-                        setShowDropdown(false);
-                        setUseFullRecipe(true);
-                        setMass('');
-                        setSelectedUnit('g');
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-neutral-600 transition border-b border-neutral-800 last:border-b-0"
-                    >
-                      <div className="font-medium text-neutral-50">{recipe.name}</div>
-                      <div className="text-sm text-neutral-400">
-                        {recipe.totalNutrients.calories.toFixed(0)} kcal • {recipe.totalMass}g • {recipe.totalNutrients.protein.toFixed(1)}g protein
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-neutral-400 text-center">
-                    No recipes found
-                  </div>
-                )}
               </div>
-            )}
+              
+              {showDropdown && !selectedRecipe && (
+                <div className="absolute z-10 w-full mt-1 bg-neutral-800 border border-neutral-800 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredRecipes.length > 0 ? (
+                    filteredRecipes.map((recipe) => (
+                      <button
+                        key={recipe.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedRecipe(recipe);
+                          setSearchQuery('');
+                          setShowDropdown(false);
+                          setUseFullRecipe(true);
+                          setMass('');
+                          setSelectedUnit('g');
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-neutral-600 transition border-b border-neutral-800 last:border-b-0"
+                      >
+                        <div className="font-medium text-neutral-50">{recipe.name}</div>
+                        <div className="text-sm text-neutral-400">
+                          {recipe.totalNutrients.calories.toFixed(0)} kcal • {recipe.totalMass}g • {recipe.totalNutrients.protein.toFixed(1)}g protein
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-neutral-400 text-center">
+                      No recipes found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {selectedRecipe && (
+        {/* Manual entry toggle under search */}
+        {!useManualEntry && (
+          <button
+            type="button"
+            onClick={() => {
+              setUseManualEntry(true);
+              setShowDropdown(false);
+              setSelectedRecipe(null);
+            }}
+            className="w-full p-3 rounded-lg border border-neutral-800 hover:bg-neutral-800/60 transition text-left"
+          >
+            <div className="font-medium text-neutral-50">+ Enter meal manually</div>
+            <div className="text-sm text-neutral-400">Fill in calories, protein, fats and carbs</div>
+          </button>
+        )}
+
+        {selectedRecipe && !useManualEntry && (
           <>
             <div className="space-y-3">
               {/* Full Recipe Option */}
@@ -356,7 +430,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-950 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -366,6 +440,101 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
               {saving ? 'Logging...' : 'Log Meal'}
             </button>
           </>
+        )}
+
+        {/* Manual entry form */}
+        {useManualEntry && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-neutral-400">Manual Entry</label>
+              <button
+                type="button"
+                onClick={() => setUseManualEntry(false)}
+                className="text-xs text-neutral-400 hover:text-neutral-50"
+              >
+                Use recipe instead
+              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Meal name</label>
+              <input
+                type="text"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                placeholder="e.g., Chicken salad"
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Mass (g)</label>
+              <input
+                type="number"
+                value={manualMass}
+                onChange={(e) => setManualMass(e.target.value)}
+                placeholder="0"
+                min="0"
+                className="w-32 px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+              />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1">Calories</label>
+                <input
+                  type="number"
+                  value={manualCalories}
+                  onChange={(e) => setManualCalories(e.target.value)}
+                  min="0"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1">Protein (g)</label>
+                <input
+                  type="number"
+                  value={manualProtein}
+                  onChange={(e) => setManualProtein(e.target.value)}
+                  min="0"
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1">Fats (g)</label>
+                <input
+                  type="number"
+                  value={manualFats}
+                  onChange={(e) => setManualFats(e.target.value)}
+                  min="0"
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-400 mb-1">Carbs (g)</label>
+                <input
+                  type="number"
+                  value={manualCarbs}
+                  onChange={(e) => setManualCarbs(e.target.value)}
+                  min="0"
+                  step="0.1"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Plus className="w-5 h-5" />
+              )}
+              {saving ? 'Logging...' : 'Log Meal'}
+            </button>
+          </div>
         )}
       </form>
     </div>

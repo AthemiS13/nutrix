@@ -51,6 +51,35 @@ export const logMeal = async (
   }
 };
 
+export const logCustomMeal = async (
+  userId: string,
+  mealName: string,
+  mass: number,
+  nutrients: { calories: number; protein: number; fats: number; carbohydrates: number }
+): Promise<string> => {
+  try {
+    if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
+    const mealsRef = collection(db as any, 'users', userId, 'meals');
+    const now = new Date().toISOString();
+
+    const mealData = {
+      userId,
+      recipeId: 'custom',
+      recipeName: mealName || 'Custom Meal',
+      mass,
+      nutrients,
+      date: now.split('T')[0],
+      createdAt: now,
+    };
+
+    const docRef = await addDoc(mealsRef, mealData);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error logging custom meal:', error);
+    throw error;
+  }
+};
+
 export const getMealsByDate = async (userId: string, date: Date): Promise<MealLog[]> => {
   try {
     const dateString = date.toISOString().split('T')[0];
