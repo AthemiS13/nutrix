@@ -2,6 +2,8 @@
 
 Nutrix is a modern, privacy-friendly calorie and macronutrient tracker built with Next.js and Firebase, featuring USDA FoodData Central integration for accurate nutrition data. This single README contains everything you need: features, setup, architecture, deployment, troubleshooting, and more.
 
+![Logo](https://github.com/AthemiS13/nutrix/blob/main/public/nutrix-logo.png)
+
 ## Table of Contents
 - Features
 - Screenshots & Assets
@@ -21,6 +23,8 @@ Nutrix is a modern, privacy-friendly calorie and macronutrient tracker built wit
 - Contributing
 - License
 
+![Dashboard Overview](https://github.com/AthemiS13/nutrix/blob/main/public/iPhone%2015%20Pro-1.jpg)
+
 ## Features
 - Authentication: Email/password auth, password reset (Firebase Auth)
 - Profiles: Body weight, daily calorie goal, optional target weight change
@@ -32,25 +36,7 @@ Nutrix is a modern, privacy-friendly calorie and macronutrient tracker built wit
 - Data: User-scoped data in Firestore with strict security rules
 - Performance: Client caching for USDA results, static export for fast delivery
 
-## Screenshots & Assets
-Paste hosted image URLs into the placeholders below or commit images under `public/` and reference with relative paths (e.g., `/nutrix-logo.png`).
-
-```md
-<!-- Replace <URL> with your image links or /public paths -->
-![Landing / Auth](<URL>)
-![Dashboard Overview](<URL>)
-![Ingredient Search](<URL>)
-![Recipe Builder](<URL>)
-![Meal Logging](<URL>)
-![Macros & Trends](<URL>)
-```
-
-Optional logo placement:
-
-```md
-<!-- Example: ![Logo](/nutrix-logo.png) or ![Logo](https://...) -->
-![Logo](<URL>)
-```
+![Macros](https://github.com/AthemiS13/nutrix/blob/main/public/iPhone%2016%20Pro-1.jpg)
 
 ## Tech Stack
 - Next.js 16 (App Router), React 19, TypeScript
@@ -59,6 +45,8 @@ Optional logo placement:
 - USDA FoodData Central API
 - Chart.js via `react-chartjs-2` (and `recharts` available)
 - Lucide React icons, date-fns, React Query (@tanstack/react-query)
+
+![Recipe Builder](https://github.com/AthemiS13/nutrix/blob/main/public/iPhone%2016%20Pro.jpg)
 
 ## Quick Start
 ```bash
@@ -191,7 +179,6 @@ npx wrangler pages publish out --project-name=nutrix
 - No offline/PWA support
 - No data export (CSV/PDF)
 - No barcode scanning
-- Limited social/sharing features
 
 ## Roadmap
 - Weight history and charts
@@ -207,5 +194,3 @@ Contributions are welcome. Please:
 - Prefer conventional commit messages (e.g., `feat(recipe): add per-100g panel`)
 - Ensure `npm run build` and `npm run lint` pass before opening a PR
 
-## License
-MIT — free for personal and commercial use.
