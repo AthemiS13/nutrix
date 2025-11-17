@@ -7,9 +7,10 @@ export const metadata: Metadata = {
   title: "Nutrix - Calorie & Macro Tracker",
   description: "Track your calories and macros with ease",
   icons: {
-    icon: '/nutrix.svg',
-    shortcut: '/nutrix.svg',
-    apple: '/nutrix.svg',
+    icon: [{ url: '/nutrix.svg', type: 'image/svg+xml' }],
+    shortcut: ['/nutrix.svg'],
+    // iOS requires PNG for home screen icons; ensure this file exists (180x180 recommended)
+    apple: [{ url: '/nutrix-logo.png', sizes: '180x180' }],
   },
   appleWebApp: {
     capable: true,
