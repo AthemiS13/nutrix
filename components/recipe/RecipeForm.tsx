@@ -36,6 +36,8 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Track in-progress text for each quantity input to avoid forcing '0' when empty
+  const [inputValues, setInputValues] = useState<Record<number, string>>({});
 
   // Auto-search as user types
   useEffect(() => {
@@ -127,6 +129,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
     const newUnits = { ...ingredientUnits };
     delete newUnits[index];
     setIngredientUnits(newUnits);
+    const newInputs = { ...inputValues };
+    delete newInputs[index];
+    setInputValues(newInputs);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -284,23 +289,55 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                       <input
                         type="number"
                         value={
-                          ingredientUnits[index] === 'special' && item.ingredient.servingSize
-                            ? Math.round(item.mass / item.ingredient.servingSize * 10) / 10
-                            : ingredientUnits[index] === 'tbsp'
-                            ? Math.round(item.mass / 15 * 10) / 10
-                            : item.mass
+                          Object.prototype.hasOwnProperty.call(inputValues, index)
+                            ? inputValues[index]
+                            : (
+                                ingredientUnits[index] === 'special' && item.ingredient.servingSize
+                                  ? String(Math.round((item.mass / item.ingredient.servingSize) * 10) / 10)
+                                  : ingredientUnits[index] === 'tbsp'
+                                  ? String(Math.round((item.mass / 15) * 10) / 10)
+                                  : String(item.mass)
+                              )
                         }
                         onChange={(e) => {
-                          const inputValue = parseFloat(e.target.value) || 0;
+                          const raw = e.target.value;
+                          setInputValues({ ...inputValues, [index]: raw });
+
+                          // Allow empty or partial numeric input without forcing 0
+                          if (raw.trim() === '' || raw === '-' || raw === '.' || raw === '-.') {
+                            return;
+                          }
+
+                          const inputValue = Number(raw);
+                          if (Number.isNaN(inputValue)) {
+                            return;
+                          }
+
                           let grams = inputValue;
-                          
                           if (ingredientUnits[index] === 'special' && item.ingredient.servingSize) {
                             grams = inputValue * item.ingredient.servingSize;
                           } else if (ingredientUnits[index] === 'tbsp') {
                             grams = inputValue * 15;
                           }
-                          
+
                           updateIngredientMass(index, grams);
+                        }}
+                        onBlur={() => {
+                          // On blur, if empty/invalid, reset to the computed value
+                          const raw = inputValues[index];
+                          const invalid = raw === undefined || raw.trim() === '' || raw === '-' || raw === '.' || raw === '-.' || Number.isNaN(Number(raw));
+                          if (invalid) {
+                            const display = (
+                              ingredientUnits[index] === 'special' && item.ingredient.servingSize
+                                ? String(Math.round((item.mass / item.ingredient.servingSize) * 10) / 10)
+                                : ingredientUnits[index] === 'tbsp'
+                                ? String(Math.round((item.mass / 15) * 10) / 10)
+                                : String(item.mass)
+                            );
+                            const newInputs = { ...inputValues };
+                            newInputs[index] = display;
+                            setInputValues(newInputs);
+                          }
                         }}
                         className="w-16 px-0 py-0 bg-transparent text-neutral-50 font-medium focus:outline-none text-sm text-center [&::-webkit-outer-spin-button]:[appearance:none] [&::-webkit-inner-spin-button]:[appearance:none] [-moz-appearance:textfield]"
                         placeholder="0"
@@ -312,7 +349,19 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
                     {/* Unit selector - clickable text */}
                     <select
                       value={ingredientUnits[index]}
-                      onChange={(e) => setIngredientUnits({ ...ingredientUnits, [index]: e.target.value as 'g' | 'tbsp' | 'special' })}
+                      onChange={(e) => {
+                        const nextUnit = e.target.value as 'g' | 'tbsp' | 'special';
+                        setIngredientUnits({ ...ingredientUnits, [index]: nextUnit });
+                        // Reset the input text to the computed value for the new unit
+                        const display = (
+                          nextUnit === 'special' && item.ingredient.servingSize
+                            ? String(Math.round((item.mass / item.ingredient.servingSize) * 10) / 10)
+                            : nextUnit === 'tbsp'
+                            ? String(Math.round((item.mass / 15) * 10) / 10)
+                            : String(item.mass)
+                        );
+                        setInputValues({ ...inputValues, [index]: display });
+                      }}
                       className="px-2 py-1 bg-transparent text-neutral-300 hover:text-neutral-50 font-medium focus:outline-none text-xs appearance-none cursor-pointer transition"
                     >
                       <option value="g">grams</option>
