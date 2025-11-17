@@ -1,6 +1,6 @@
-# NutriBuddy — Calorie & Macro Tracker
+# Nutrix — Calorie & Macro Tracker
 
-NutriBuddy is a modern, privacy-friendly calorie and macronutrient tracker built with Next.js and Firebase, featuring USDA FoodData Central integration for accurate nutrition data. This single README contains everything you need: features, setup, architecture, deployment, troubleshooting, and more.
+Nutrix is a modern, privacy-friendly calorie and macronutrient tracker built with Next.js and Firebase, featuring USDA FoodData Central integration for accurate nutrition data. This single README contains everything you need: features, setup, architecture, deployment, troubleshooting, and more.
 
 ## Table of Contents
 - Features
@@ -169,7 +169,7 @@ Run inside `nutribuddy/`:
 Wrangler CLI alternative:
 ```bash
 npm run build
-npx wrangler pages publish out --project-name=nutribuddy
+npx wrangler pages publish out --project-name=nutrix
 ```
 
 ## Performance & Limits
@@ -202,7 +202,10 @@ npx wrangler pages publish out --project-name=nutribuddy
 - Theme toggle
 
 ## Contributing
-See `CONTRIBUTING.md` for setup, branching, commit style, and PR checklist.
+Contributions are welcome. Please:
+- Use feature branches like `feat/<short-description>` or `fix/<short-description>`
+- Prefer conventional commit messages (e.g., `feat(recipe): add per-100g panel`)
+- Ensure `npm run build` and `npm run lint` pass before opening a PR
 
 ## License
 MIT — free for personal and commercial use.
