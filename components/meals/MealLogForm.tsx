@@ -960,7 +960,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onN
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-neutral-50 flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-blue-400" />
+                        <Sparkles className="w-5 h-5 text-neutral-400" />
                         Review & Log
                       </h3>
                       <button
@@ -981,14 +981,30 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onN
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-1">Mass (g)</label>
-                      <input
-                        type="number"
-                        value={manualMass}
-                        onChange={(e) => setManualMass(e.target.value)}
-                        className="w-32 px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-400 mb-1">Mass (g)</label>
+                        <input
+                          type="number"
+                          value={manualMass}
+                          onChange={(e) => setManualMass(e.target.value)}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-400 mb-1">AI Confidence</label>
+                        <div className={`w-full px-3 py-2 text-sm rounded-lg border flex items-center gap-2 ${nutrixResult?.confidence >= 0.8
+                          ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                          : nutrixResult?.confidence >= 0.5
+                            ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                          }`}>
+
+                          <span className="font-semibold">
+                            {Math.round((nutrixResult?.confidence || 0) * 100)}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div>
