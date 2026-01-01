@@ -50,16 +50,35 @@ export const searchIngredients = async (query: string): Promise<Ingredient[]> =>
 
   try {
     // Search for foods - this is fast
-    const response = await fetch(
-      `${USDA_BASE_URL}/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(
-        query
-      )}&dataType=Foundation,SR Legacy,Survey (FNDDS)&pageSize=15`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    const fetchWithRetry = async (retries = 5, delay = 2000): Promise<Response> => {
+      try {
+        const res = await fetch(
+          `${USDA_BASE_URL}/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(
+            query.trim() + '*'
+          )}&dataType=Foundation,SR Legacy,Survey (FNDDS)&pageSize=15`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (!res.ok && res.status !== 429 && retries > 0) {
+          console.warn(`USDA API failed with status ${res.status}. Retrying in ${delay}ms... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(retries - 1, delay * 2);
+        }
+        return res;
+      } catch (err) {
+        if (retries > 0) {
+          console.warn(`USDA API network error: ${err}. Retrying in ${delay}ms... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return fetchWithRetry(retries - 1, delay * 2);
+        }
+        throw err;
       }
-    );
+    };
+
+    const response = await fetchWithRetry();
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -157,10 +176,10 @@ export const getIngredientById = async (fdcId: number): Promise<Ingredient | nul
 
       const pick = (nutrientId?: number, numberStr?: string) =>
         nutrientId === NUTRIENT_IDS.ENERGY || numberStr === '208' ? 'calories'
-        : nutrientId === NUTRIENT_IDS.PROTEIN || numberStr === '203' ? 'protein'
-        : nutrientId === NUTRIENT_IDS.FAT || numberStr === '204' ? 'fats'
-        : nutrientId === NUTRIENT_IDS.CARBS || numberStr === '205' ? 'carbohydrates'
-        : undefined;
+          : nutrientId === NUTRIENT_IDS.PROTEIN || numberStr === '203' ? 'protein'
+            : nutrientId === NUTRIENT_IDS.FAT || numberStr === '204' ? 'fats'
+              : nutrientId === NUTRIENT_IDS.CARBS || numberStr === '205' ? 'carbohydrates'
+                : undefined;
 
       const key = pick(id, numberCode);
       if (key && typeof valuePer100g === 'number') {
@@ -181,7 +200,7 @@ export const getIngredientById = async (fdcId: number): Promise<Ingredient | nul
     } else if (data.foodPortions && data.foodPortions.length > 0) {
       // Prefer portions that represent natural/countable units with amount 1
       const portions = data.foodPortions as any[];
-      const naturalNames = ['egg','piece','slice','unit'];
+      const naturalNames = ['egg', 'piece', 'slice', 'unit'];
       let bestPortion = portions.find(p => p.gramWeight && p.amount === 1 && p.measureUnit?.name && naturalNames.includes(String(p.measureUnit.name).toLowerCase()))
         || portions.find(p => p.gramWeight && p.amount === 1 && p.measureUnit?.name)
         || portions.find(p => p.gramWeight)

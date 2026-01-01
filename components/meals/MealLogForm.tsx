@@ -6,6 +6,8 @@ import { logMeal, logCustomMeal } from '@/lib/meal-service';
 import { Recipe } from '@/lib/types';
 import { Plus, Loader2, Search, X } from 'lucide-react';
 import { convertToGrams, gramsToTablespoons, shouldUseNaturalUnit, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
+import { searchIngredients, getIngredientById } from '@/lib/usda-api';
+import { Ingredient } from '@/lib/types';
 
 interface MealLogFormProps {
   userId: string;
@@ -15,7 +17,7 @@ interface MealLogFormProps {
 export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [useManualEntry, setUseManualEntry] = useState<boolean>(false);
+  const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food'>('recipe');
   const [mass, setMass] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
@@ -23,6 +25,11 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [foodSearchQuery, setFoodSearchQuery] = useState('');
+  const [foodSearchResults, setFoodSearchResults] = useState<Ingredient[]>([]);
+  const [foodSearching, setFoodSearching] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<Ingredient | null>(null);
+  const [addingFoodId, setAddingFoodId] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Manual entry fields
@@ -40,7 +47,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   // If no recipes available, switch to manual entry after load
   useEffect(() => {
     if (!loading && recipes.length === 0) {
-      setUseManualEntry(true);
+      setLogMode('manual');
     }
   }, [loading, recipes]);
 
@@ -62,12 +69,74 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   // Filter recipes based on search query
   const filteredRecipes = useMemo(() => {
     if (!searchQuery.trim()) return recipes;
-    
+
     const query = searchQuery.toLowerCase();
-    return recipes.filter(recipe => 
+    return recipes.filter(recipe =>
       recipe.name.toLowerCase().includes(query)
     );
   }, [recipes, searchQuery]);
+
+  // Food Search
+  useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      if (foodSearchQuery.trim().length >= 3) {
+        handleFoodSearch();
+      } else if (foodSearchQuery.trim().length === 0) {
+        setFoodSearchResults([]);
+      }
+    }, 800);
+
+    return () => clearTimeout(delayTimer);
+  }, [foodSearchQuery]);
+
+  const handleFoodSearch = async () => {
+    if (!foodSearchQuery.trim()) {
+      setFoodSearchResults([]);
+      return;
+    }
+
+    setFoodSearching(true);
+    setError('');
+
+    try {
+      const results = await searchIngredients(foodSearchQuery);
+      setFoodSearchResults(results);
+    } catch (err: any) {
+      setError(err.message || 'Failed to search foods');
+      setFoodSearchResults([]);
+    } finally {
+      setFoodSearching(false);
+    }
+  };
+
+  const selectFood = async (ingredient: Ingredient) => {
+    setAddingFoodId(ingredient.fdcId);
+    try {
+      // Fetch full details
+      const full = await getIngredientById(ingredient.fdcId);
+      const useIng = full || ingredient;
+      setSelectedFood(useIng);
+      setFoodSearchQuery('');
+      setFoodSearchResults([]);
+
+      // Default to 100g or serving size
+      if (useIng.servingSize) {
+        setMass('1'); // 1 serving
+        setSelectedUnit('special');
+      } else {
+        setMass('100');
+        setSelectedUnit('g');
+      }
+    } catch (e) {
+      setSelectedFood(ingredient);
+      setFoodSearchQuery('');
+      setFoodSearchResults([]);
+      setMass('100');
+      setSelectedUnit('g');
+    } finally {
+      setAddingFoodId(null);
+    }
+  };
 
   const loadRecipes = async () => {
     try {
@@ -82,7 +151,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (useManualEntry) {
+    if (logMode === 'manual') {
       // Manual entry validation
       const mmass = parseFloat(manualMass);
       const mcal = parseFloat(manualCalories);
@@ -119,10 +188,60 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         setManualProtein('');
         setManualFats('');
         setManualCarbs('');
-        setUseManualEntry(false);
+        setLogMode('recipe');
         onSuccess();
       } catch (err: any) {
         setError(err.message || 'Failed to log meal');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (logMode === 'food') {
+      if (!selectedFood) {
+        setError('Please select a food');
+        return;
+      }
+
+      const inputMass = parseFloat(mass);
+      if (isNaN(inputMass) || inputMass <= 0) {
+        setError('Please enter a valid amount');
+        return;
+      }
+
+      let massInGrams = inputMass;
+      let multiplier = 1;
+
+      if (selectedUnit === 'tbsp') {
+        massInGrams = inputMass * 15;
+      } else if (selectedUnit === 'special' && selectedFood.servingSize) {
+        massInGrams = inputMass * selectedFood.servingSize;
+      }
+
+      // Calculate macros
+      const ratio = massInGrams / 100;
+      const cal = selectedFood.nutrients.calories * ratio;
+      const pro = selectedFood.nutrients.protein * ratio;
+      const fat = selectedFood.nutrients.fats * ratio;
+      const carb = selectedFood.nutrients.carbohydrates * ratio;
+
+      setSaving(true);
+      setError('');
+
+      try {
+        await logCustomMeal(userId, selectedFood.description, massInGrams, {
+          calories: cal,
+          protein: pro,
+          fats: fat,
+          carbohydrates: carb,
+        });
+        setSelectedFood(null);
+        setMass('');
+        setLogMode('recipe');
+        onSuccess();
+      } catch (err: any) {
+        setError(err.message || 'Failed to log food');
       } finally {
         setSaving(false);
       }
@@ -133,10 +252,10 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
       setError('Please select a recipe');
       return;
     }
-    
+
     // Use full recipe mass or custom mass
     let massToLog = useFullRecipe ? selectedRecipe.totalMass : parseFloat(mass);
-    
+
     // Convert from selected unit to grams if needed
     if (!useFullRecipe && selectedUnit !== 'g') {
       if (selectedUnit === 'tbsp') {
@@ -146,15 +265,15 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         massToLog = massToLog * selectedRecipe.ingredients[0].ingredient.servingSize;
       }
     }
-    
+
     if (isNaN(massToLog) || massToLog <= 0) {
       setError('Please enter a valid amount');
       return;
     }
-    
+
     setSaving(true);
     setError('');
-    
+
     try {
       await logMeal(
         userId,
@@ -179,9 +298,9 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
 
   const calculateNutrients = () => {
     if (!selectedRecipe) return null;
-    
+
     let massToUse = useFullRecipe ? selectedRecipe.totalMass : (parseFloat(mass) || 0);
-    
+
     // Convert from selected unit to grams if needed
     if (!useFullRecipe && selectedUnit !== 'g') {
       if (selectedUnit === 'tbsp') {
@@ -190,9 +309,9 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         massToUse = massToUse * selectedRecipe.ingredients[0].ingredient.servingSize;
       }
     }
-    
+
     const multiplier = massToUse / 100;
-    
+
     return {
       calories: selectedRecipe.nutrientsPer100g.calories * multiplier,
       protein: selectedRecipe.nutrientsPer100g.protein * multiplier,
@@ -217,51 +336,85 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   return (
     <div className="bg-neutral-900 p-6 rounded-lg">
       <h2 className="text-2xl font-bold mb-6 text-neutral-50">Log a Meal</h2>
-      
+
+      {/* Mode Switcher */}
+      <div className="flex gap-2 mb-6 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+        <button
+          type="button"
+          onClick={() => { setLogMode('recipe'); setError(''); }}
+          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'recipe'
+            ? 'bg-neutral-800 text-neutral-50 shadow-sm'
+            : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+        >
+          My Recipes
+        </button>
+        <button
+          type="button"
+          onClick={() => { setLogMode('food'); setError(''); }}
+          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'food'
+            ? 'bg-neutral-800 text-neutral-50 shadow-sm'
+            : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+        >
+          Search Food
+        </button>
+        <button
+          type="button"
+          onClick={() => { setLogMode('manual'); setError(''); }}
+          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'manual'
+            ? 'bg-neutral-800 text-neutral-50 shadow-sm'
+            : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+        >
+          Manual
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded">
             {error}
           </div>
         )}
-        
-        {!useManualEntry && (
+
+        {logMode === 'recipe' && (
           <div className="recipe-search-container">
             <label className="block text-sm font-medium text-neutral-400 mb-2">Select Recipe</label>
             <div className="relative">
               <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
-              <input
-                type="text"
-                value={selectedRecipe ? selectedRecipe.name : searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowDropdown(true);
-                  if (selectedRecipe) {
-                    setSelectedRecipe(null);
-                  }
-                }}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search recipes..."
-                className="w-full pl-10 pr-10 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
-              />
-              {(searchQuery || selectedRecipe) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedRecipe(null);
-                    setShowDropdown(false);
-                    setMass('');
-                    setSelectedUnit('g');
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                <input
+                  type="text"
+                  value={selectedRecipe ? selectedRecipe.name : searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowDropdown(true);
+                    if (selectedRecipe) {
+                      setSelectedRecipe(null);
+                    }
                   }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-50"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Search recipes..."
+                  className="w-full pl-10 pr-10 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                />
+                {(searchQuery || selectedRecipe) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedRecipe(null);
+                      setShowDropdown(false);
+                      setMass('');
+                      setSelectedUnit('g');
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-50"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
               </div>
-              
+
               {showDropdown && !selectedRecipe && (
                 <div className="absolute z-10 w-full mt-1 bg-neutral-800 border border-neutral-800 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {filteredRecipes.length > 0 ? (
@@ -296,34 +449,19 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
           </div>
         )}
 
-        {/* Manual entry toggle under search */}
-        {!useManualEntry && (
-          <button
-            type="button"
-            onClick={() => {
-              setUseManualEntry(true);
-              setShowDropdown(false);
-              setSelectedRecipe(null);
-            }}
-            className="w-full p-3 rounded-lg border border-neutral-800 hover:bg-neutral-800/60 transition text-left"
-          >
-            <div className="font-medium text-neutral-50">+ Enter meal manually</div>
-            <div className="text-sm text-neutral-400">Fill in calories, protein, fats and carbs</div>
-          </button>
-        )}
+        {/* Manual entry toggle removed from here as it is now in tabs */}
 
-        {selectedRecipe && !useManualEntry && (
+        {logMode === 'recipe' && selectedRecipe && (
           <>
             <div className="space-y-3">
               {/* Full Recipe Option */}
               <button
                 type="button"
                 onClick={() => setUseFullRecipe(true)}
-                className={`w-full p-4 rounded-lg border-2 transition text-left ${
-                  useFullRecipe
-                    ? 'border-neutral-600 bg-neutral-800/10'
-                    : 'border-neutral-800 bg-neutral-800'
-                }`}
+                className={`w-full p-4 rounded-lg border-2 transition text-left ${useFullRecipe
+                  ? 'border-neutral-600 bg-neutral-800/10'
+                  : 'border-neutral-800 bg-neutral-800'
+                  }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-semibold text-neutral-50">Full Recipe</span>
@@ -338,11 +476,10 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
               <button
                 type="button"
                 onClick={() => setUseFullRecipe(false)}
-                className={`w-full p-4 rounded-lg border-2 transition text-left ${
-                  !useFullRecipe
-                    ? 'border-neutral-600 bg-neutral-800/10'
-                    : 'border-neutral-800 bg-neutral-800'
-                }`}
+                className={`w-full p-4 rounded-lg border-2 transition text-left ${!useFullRecipe
+                  ? 'border-neutral-600 bg-neutral-800/10'
+                  : 'border-neutral-800 bg-neutral-800'
+                  }`}
               >
                 <span className="font-semibold text-neutral-50">Custom Amount</span>
               </button>
@@ -376,10 +513,10 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                     >
                       <option value="g">grams</option>
                       <option value="tbsp">tbsp</option>
-                      {selectedRecipe?.ingredients?.[0]?.ingredient.servingSize && 
-                       sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit) && (
-                        <option value="special">{abbreviateUnit(sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit))}</option>
-                      )}
+                      {selectedRecipe?.ingredients?.[0]?.ingredient.servingSize &&
+                        sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit) && (
+                          <option value="special">{abbreviateUnit(sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit))}</option>
+                        )}
                     </select>
 
                     {/* Grams display - only for special units */}
@@ -392,7 +529,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                   <p className="text-xs text-neutral-400 mt-2">
                     {selectedUnit === 'g' && 'Precise weight measurement'}
                     {selectedUnit === 'tbsp' && '≈ 15g per tablespoon'}
-                    {selectedUnit === 'special' && selectedRecipe?.ingredients?.[0]?.ingredient.servingSize && 
+                    {selectedUnit === 'special' && selectedRecipe?.ingredients?.[0]?.ingredient.servingSize &&
                       `1 ${sanitizeServingUnit(selectedRecipe.ingredients[0].ingredient.servingUnit) || 'unit'} = ${selectedRecipe.ingredients[0].ingredient.servingSize}g`}
                   </p>
                 </div>
@@ -442,18 +579,180 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
           </>
         )}
 
+        {/* Food Search Mode */}
+        {logMode === 'food' && (
+          <div className="space-y-4">
+            {!selectedFood ? (
+              <div>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">Search USDA Database</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={foodSearchQuery}
+                    onChange={(e) => setFoodSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFoodSearch();
+                      }
+                    }}
+                    placeholder="Search for food (e.g. Apple, Chicken, Rice)..."
+                    className="w-full pl-10 pr-4 py-3 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                  />
+                  {foodSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
+                    </div>
+                  )}
+                </div>
+
+                {foodSearchResults.length > 0 && (
+                  <div className="mt-2 bg-neutral-800 border border-neutral-800 rounded-lg max-h-64 overflow-y-auto">
+                    {foodSearchResults.map((food) => (
+                      <button
+                        key={food.fdcId}
+                        type="button"
+                        onClick={() => selectFood(food)}
+                        className="w-full text-left px-4 py-3 hover:bg-neutral-600 active:bg-neutral-700 transition flex justify-between items-center border-b border-neutral-800 last:border-0"
+                      >
+                        <span className="text-neutral-50 text-sm">{food.description}</span>
+                        {addingFoodId === food.fdcId ? (
+                          <Loader2 className="w-5 h-5 text-neutral-400 animate-spin flex-shrink-0" />
+                        ) : (
+                          <Plus className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {foodSearchQuery.length > 2 && !foodSearching && foodSearchResults.length === 0 && (
+                  <div className="mt-4 text-center text-neutral-500 text-sm">
+                    No results found
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Selected Food View
+              <div className="space-y-4">
+                <div className="flex items-start justify-between bg-neutral-800 p-4 rounded-lg">
+                  <div>
+                    <h3 className="font-bold text-neutral-50">{selectedFood.description}</h3>
+                    <p className="text-sm text-neutral-400">
+                      {selectedFood.nutrients.calories.toFixed(0)} kcal per 100g
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFood(null)}
+                    className="text-neutral-400 hover:text-neutral-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-400 mb-2">
+                    Amount & Unit
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="inline-flex items-center border border-neutral-700 rounded-lg bg-neutral-950 px-3 py-1.5">
+                      <input
+                        type="number"
+                        value={mass}
+                        onChange={(e) => setMass(e.target.value)}
+                        className="w-16 px-0 py-0 bg-transparent text-neutral-50 font-medium focus:outline-none text-sm text-center [&::-webkit-outer-spin-button]:[appearance:none] [&::-webkit-inner-spin-button]:[appearance:none] [-moz-appearance:textfield]"
+                        placeholder="0"
+                        min="0"
+                        step="0.1"
+                      />
+                    </div>
+
+                    <select
+                      value={selectedUnit}
+                      onChange={(e) => setSelectedUnit(e.target.value as 'g' | 'tbsp' | 'special')}
+                      className="px-2 py-1 bg-transparent text-neutral-300 hover:text-neutral-50 font-medium focus:outline-none text-xs appearance-none cursor-pointer transition"
+                    >
+                      <option value="g">grams</option>
+                      <option value="tbsp">tbsp</option>
+                      {selectedFood.servingSize && selectedFood.servingUnit && (
+                        <option value="special">{abbreviateUnit(sanitizeServingUnit(selectedFood.servingUnit))}</option>
+                      )}
+                    </select>
+
+                    {selectedUnit === 'special' && selectedFood.servingSize && (
+                      <span className="text-neutral-500 text-xs whitespace-nowrap flex-shrink-0 -ml-1">
+                        ({((parseFloat(mass) || 0) * selectedFood.servingSize).toFixed(0)}g)
+                      </span>
+                    )}
+                  </div>
+                  {selectedUnit === 'special' && selectedFood.servingSize && (
+                    <p className="text-xs text-neutral-400 mt-2">
+                      1 {sanitizeServingUnit(selectedFood.servingUnit) || 'serving'} = {selectedFood.servingSize}g
+                    </p>
+                  )}
+                </div>
+
+                {/* Nutrition Summary for this amount */}
+                {(() => {
+                  const inputMass = parseFloat(mass) || 0;
+                  let realMass = inputMass;
+                  if (selectedUnit === 'tbsp') realMass *= 15;
+                  else if (selectedUnit === 'special' && selectedFood.servingSize) realMass *= selectedFood.servingSize;
+
+                  const ratio = realMass / 100;
+                  return (
+                    <div className="bg-neutral-800 p-4 rounded-lg border border-neutral-800">
+                      <h3 className="text-sm font-semibold text-neutral-50 mb-3">
+                        {realMass.toFixed(0)}g Nutrition
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-neutral-400 text-xs">Calories</p>
+                          <p className="text-neutral-50 text-lg font-bold">
+                            {(selectedFood.nutrients.calories * ratio).toFixed(0)} kcal
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-neutral-400 text-xs">Protein</p>
+                          <p className="text-neutral-50 text-lg">{(selectedFood.nutrients.protein * ratio).toFixed(1)}g</p>
+                        </div>
+                        <div>
+                          <p className="text-neutral-400 text-xs">Fats</p>
+                          <p className="text-neutral-50 text-lg">{(selectedFood.nutrients.fats * ratio).toFixed(1)}g</p>
+                        </div>
+                        <div>
+                          <p className="text-neutral-400 text-xs">Carbs</p>
+                          <p className="text-neutral-50 text-lg">{(selectedFood.nutrients.carbohydrates * ratio).toFixed(1)}g</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <button
+                  type="submit"
+                  disabled={saving || !mass || parseFloat(mass) <= 0}
+                  className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
+                  {saving ? 'Logging...' : 'Log Food'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Manual entry form */}
-        {useManualEntry && (
+        {logMode === 'manual' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-neutral-400">Manual Entry</label>
-              <button
-                type="button"
-                onClick={() => setUseManualEntry(false)}
-                className="text-xs text-neutral-400 hover:text-neutral-50"
-              >
-                Use recipe instead
-              </button>
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-400 mb-1">Meal name</label>
