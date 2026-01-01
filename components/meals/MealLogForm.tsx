@@ -8,16 +8,20 @@ import { Plus, Loader2, Search, X } from 'lucide-react';
 import { convertToGrams, gramsToTablespoons, shouldUseNaturalUnit, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
 import { searchIngredients, getIngredientById } from '@/lib/usda-api';
 import { Ingredient } from '@/lib/types';
+import { getUserProfile } from '@/lib/user-service';
+import { analyzeFoodDescription } from '@/lib/gemini';
+import { Sparkles } from 'lucide-react';
 
 interface MealLogFormProps {
   userId: string;
   onSuccess: () => void;
+  onNavigateToSettings: () => void;
 }
 
-export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) => {
+export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onNavigateToSettings }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food'>('recipe');
+  const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food' | 'nutrix'>('recipe');
   const [mass, setMass] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
@@ -39,6 +43,12 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
   const [manualProtein, setManualProtein] = useState('');
   const [manualFats, setManualFats] = useState('');
   const [manualCarbs, setManualCarbs] = useState('');
+
+  // Nutrix AI fields
+  const [nutrixDescription, setNutrixDescription] = useState('');
+  const [nutrixAnalyzing, setNutrixAnalyzing] = useState(false);
+  const [nutrixResult, setNutrixResult] = useState<any>(null); // Using any temporarily for convenience, properly defined in gemini.ts but here for state
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadRecipes();
@@ -149,9 +159,55 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
     }
   };
 
+  const loadUserProfile = async () => {
+    try {
+      const profile = await getUserProfile(userId);
+      if (profile && profile.geminiApiKey) {
+        setUserApiKey(profile.geminiApiKey);
+      }
+    } catch (err) {
+      console.error('Failed to load user profile', err);
+    }
+  };
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [userId]);
+
+  const handleNutrixAnalysis = async () => {
+    if (!nutrixDescription.trim()) {
+      setError('Please enter a description of what you ate.');
+      return;
+    }
+    if (!userApiKey) {
+      setError('Gemini API Key missing. Please add it in Settings.');
+      return;
+    }
+
+    setNutrixAnalyzing(true);
+    setError('');
+    setNutrixResult(null);
+
+    try {
+      const result = await analyzeFoodDescription(nutrixDescription, userApiKey);
+      setNutrixResult(result);
+      // Pre-fill manual fields for review
+      setManualName(result.food_item);
+      setManualMass(result.mass_g.toString());
+      setManualCalories(result.calories.toString());
+      setManualProtein(result.protein_g.toString());
+      setManualFats(result.fats_g.toString());
+      setManualCarbs(result.carbs_g.toString());
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze food. Please try again.');
+    } finally {
+      setNutrixAnalyzing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (logMode === 'manual') {
+    if (logMode === 'manual' || logMode === 'nutrix') {
       // Manual entry validation
       const mmass = parseFloat(manualMass);
       const mcal = parseFloat(manualCalories);
@@ -342,7 +398,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         <button
           type="button"
           onClick={() => { setLogMode('recipe'); setError(''); }}
-          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'recipe'
+          className={`flex-1 py-2 rounded-md text-[10px] font-medium transition ${logMode === 'recipe'
             ? 'bg-neutral-800 text-neutral-50 shadow-sm'
             : 'text-neutral-400 hover:text-neutral-200'
             }`}
@@ -352,7 +408,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         <button
           type="button"
           onClick={() => { setLogMode('food'); setError(''); }}
-          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'food'
+          className={`flex-1 py-2 rounded-md text-[10px] font-medium transition ${logMode === 'food'
             ? 'bg-neutral-800 text-neutral-50 shadow-sm'
             : 'text-neutral-400 hover:text-neutral-200'
             }`}
@@ -362,12 +418,23 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
         <button
           type="button"
           onClick={() => { setLogMode('manual'); setError(''); }}
-          className={`flex-1 py-2 rounded-md text-sm font-medium transition ${logMode === 'manual'
+          className={`flex-1 py-2 rounded-md text-[10px] font-medium transition ${logMode === 'manual'
             ? 'bg-neutral-800 text-neutral-50 shadow-sm'
             : 'text-neutral-400 hover:text-neutral-200'
             }`}
         >
           Manual
+        </button>
+        <button
+          type="button"
+          onClick={() => { setLogMode('nutrix'); setError(''); }}
+          className={`flex-1 py-2 rounded-md text-[10px] font-medium transition flex items-center justify-center gap-1 ${logMode === 'nutrix'
+            ? 'bg-neutral-800 text-neutral-50 shadow-sm'
+            : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+        >
+          <Sparkles className="w-3 h-3" />
+          Nutrix
         </button>
       </div>
 
@@ -820,7 +887,6 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
                 />
               </div>
             </div>
-
             <button
               type="submit"
               disabled={saving}
@@ -835,6 +901,155 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess }) =
             </button>
           </div>
         )}
+
+        {/* Nutrix AI Mode */}
+        {
+          logMode === 'nutrix' && (
+            <div className="space-y-4">
+              {!userApiKey ? (
+                <div className="text-center p-6 border border-neutral-800 rounded-lg bg-neutral-900/50">
+                  <Sparkles className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-neutral-300 mb-2">Setup Nutrix AI</h3>
+                  <p className="text-sm text-neutral-400 mb-4">
+                    To use AI meal logging, you need to add your Google Gemini API key in Settings.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onNavigateToSettings}
+                    className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                  >
+                    Go to Settings &rarr;
+                  </button>
+                </div>
+              ) : (
+                !nutrixResult ? (
+                  // Input State
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-400 mb-2">
+                        Describe your meal
+                      </label>
+                      <textarea
+                        value={nutrixDescription}
+                        onChange={(e) => setNutrixDescription(e.target.value)}
+                        placeholder="e.g. A large slice of pepperoni pizza and a caesar salad..."
+                        className="w-full h-32 px-4 py-3 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent resize-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleNutrixAnalysis}
+                      disabled={nutrixAnalyzing || !nutrixDescription.trim()}
+                      className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {nutrixAnalyzing ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          Analyze with Nutrix
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  // Review State (Reuse manual form styling but pre-filled)
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-neutral-50 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-blue-400" />
+                        Review & Log
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setNutrixResult(null)}
+                        className="text-xs font-semibold text-red-500 hover:text-red-400 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 transition"
+                      >
+                        Try again
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-400 mb-1">Meal name</label>
+                      <input
+                        type="text"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-400 mb-1">Mass (g)</label>
+                      <input
+                        type="number"
+                        value={manualMass}
+                        onChange={(e) => setManualMass(e.target.value)}
+                        className="w-32 px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs text-neutral-400 mb-1">Calories</label>
+                        <input
+                          type="number"
+                          value={manualCalories}
+                          onChange={(e) => setManualCalories(e.target.value)}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-neutral-400 mb-1">Protein (g)</label>
+                        <input
+                          type="number"
+                          value={manualProtein}
+                          onChange={(e) => setManualProtein(e.target.value)}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-neutral-400 mb-1">Fats (g)</label>
+                        <input
+                          type="number"
+                          value={manualFats}
+                          onChange={(e) => setManualFats(e.target.value)}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-neutral-400 mb-1">Carbs (g)</label>
+                        <input
+                          type="number"
+                          value={manualCarbs}
+                          onChange={(e) => setManualCarbs(e.target.value)}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+
+
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Plus className="w-5 h-5" />
+                      )}
+                      {saving ? 'Logging...' : 'Log Meal'}
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )
+        }
+
       </form>
     </div>
   );

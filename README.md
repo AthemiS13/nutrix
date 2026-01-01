@@ -23,6 +23,25 @@ Nutrix is a modern, privacy-friendly calorie and macronutrient tracker built wit
 - Contributing
 - License
 
+## Nutrix AI Setup
+
+Nutrix AI is your smart nutrition companion. It uses advanced AI to simplify meal logging:
+
+-   **Natural Language Logging**: Just describe what you ate (e.g., "A slice of pepperoni pizza and a coke").
+-   **Smart Estimation**: Automatically estimates portion sizes, calories, and macros.
+-   **Context Aware**: Handles complex meals and mixed ingredients effortlessly.
+
+To enable these features:
+
+1.  **Get an API Key**: Visit [Google AI Studio](https://aistudio.google.com/) and create a free API key.
+2.  **Configure in App**:
+    -   Go to the **Settings** page in Nutrix.
+    -   Scroll to the "AI Settings" section.
+    -   Paste your API Key and save.
+3.  **Start Logging**: Use the new "Nutrix" tab in the Log Meal screen to describe your meals naturally!
+
+**Note**: Nutrix uses the cutting-edge `gemini-3-flash-preview` model for ultra-fast and accurate analysis.
+
 ![Dashboard Overview](https://github.com/AthemiS13/nutrix/blob/main/public/iPhone%2015%20Pro-1.jpg)
 
 ## Features

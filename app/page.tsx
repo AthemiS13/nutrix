@@ -12,10 +12,10 @@ import { SocialPage } from '@/components/social/SocialPage';
 import { getUserProfile } from '@/lib/user-service';
 import { getUserRecipes, deleteRecipe } from '@/lib/recipe-service';
 import { UserProfile, Recipe } from '@/lib/types';
-import { 
-  Home, 
-  BookOpen, 
-  PlusCircle, 
+import {
+  Home,
+  BookOpen,
+  PlusCircle,
   Loader2,
   Trash2,
   Edit,
@@ -49,7 +49,7 @@ export default function HomePage() {
 
   const loadProfile = async () => {
     if (!user) return;
-    
+
     setProfileLoading(true);
     try {
       const profile = await getUserProfile(user.uid);
@@ -65,7 +65,7 @@ export default function HomePage() {
 
   const loadRecipes = async () => {
     if (!user) return;
-    
+
     try {
       const userRecipes = await getUserRecipes(user.uid);
       setRecipes(userRecipes);
@@ -76,7 +76,7 @@ export default function HomePage() {
 
   const handleDeleteRecipe = async (recipeId: string) => {
     if (!user || !confirm('Are you sure you want to delete this recipe?')) return;
-    
+
     try {
       await deleteRecipe(user.uid, recipeId);
       loadRecipes();
@@ -143,7 +143,7 @@ export default function HomePage() {
       >
         <div className="px-4 h-full flex items-end justify-center relative">
           {/* larger logo that overflows the header visually */}
-          <img src="/nutrix.svg" alt="Nutrix" className="h-[5.5rem] brightness-0 invert" style={{position: 'relative', bottom: '-0.25rem'}} />
+          <img src="/nutrix.svg" alt="Nutrix" className="h-[5.5rem] brightness-0 invert" style={{ position: 'relative', bottom: '-0.25rem' }} />
         </div>
       </header>
 
@@ -158,6 +158,7 @@ export default function HomePage() {
             <MealLogForm
               userId={user.uid}
               onSuccess={() => setCurrentView('dashboard')}
+              onNavigateToSettings={() => setCurrentView('settings')}
             />
           )}
 
@@ -296,9 +297,8 @@ export default function HomePage() {
           <button
             onClick={() => setCurrentView('dashboard')}
             aria-current={currentView === 'dashboard' ? 'page' : undefined}
-            className={`transition ${
-              currentView === 'dashboard' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
-            }`}
+            className={`transition ${currentView === 'dashboard' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+              }`}
           >
             <Home className="w-5 h-5" />
             <span className="text-[9px]">Dashboard</span>
@@ -310,9 +310,8 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'log-meal' ? 'page' : undefined}
-            className={`transition ${
-              currentView === 'log-meal' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
-            }`}
+            className={`transition ${currentView === 'log-meal' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+              }`}
           >
             <PlusCircle className="w-5 h-5" />
             <span className="text-[9px]">Log Meal</span>
@@ -324,9 +323,8 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'recipes' || currentView === 'create-recipe' ? 'page' : undefined}
-            className={`transition ${
-              currentView === 'recipes' || currentView === 'create-recipe' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
-            }`}
+            className={`transition ${currentView === 'recipes' || currentView === 'create-recipe' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+              }`}
           >
             <BookOpen className="w-5 h-5" />
             <span className="text-[9px]">Recipes</span>
@@ -338,9 +336,8 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'social' ? 'page' : undefined}
-            className={`transition ${
-              currentView === 'social' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
-            }`}
+            className={`transition ${currentView === 'social' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+              }`}
           >
             <Users className="w-5 h-5" />
             <span className="text-[9px]">Social</span>
@@ -352,9 +349,8 @@ export default function HomePage() {
               setEditingRecipe(null);
             }}
             aria-current={currentView === 'settings' ? 'page' : undefined}
-            className={`transition ${
-              currentView === 'settings' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
-            }`}
+            className={`transition ${currentView === 'settings' ? 'text-neutral-50 font-semibold' : 'text-neutral-400'
+              }`}
           >
             <Settings className="w-5 h-5" />
             <span className="text-[9px]">Settings</span>

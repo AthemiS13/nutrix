@@ -25,6 +25,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     dailyProteinGoal: userProfile.dailyProteinGoal?.toString() || '',
     targetMonthlyWeightChange: userProfile.targetMonthlyWeightChange?.toString() || '0',
     preferredUnit: userProfile.preferredUnit || 'grams',
+    geminiApiKey: userProfile.geminiApiKey || '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,6 +57,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         }),
         targetMonthlyWeightChange: parseFloat(formData.targetMonthlyWeightChange) || undefined,
         preferredUnit: formData.preferredUnit as 'grams' | 'tablespoons',
+        geminiApiKey: formData.geminiApiKey.trim() || undefined,
       };
 
       await updateUserProfile(userId, updatedProfile);
@@ -70,7 +72,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   const handleCopyFriendCode = async () => {
     if (!userProfile.friendCode) return;
-    
+
     try {
       // Try modern clipboard API first
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -87,7 +89,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
           document.execCommand('copy');
           textArea.remove();
@@ -276,6 +278,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           </div>
 
+
+          {/* AI Settings */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-neutral-50 border-b border-neutral-800 pb-2">
+              AI Settings
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">Google Gemini API Key</label>
+              <input
+                type="password"
+                name="geminiApiKey"
+                value={formData.geminiApiKey}
+                onChange={handleChange}
+                placeholder="AIza..."
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent font-mono"
+              />
+              <p className="text-xs text-neutral-400 mt-1">
+                Required for Nutrix AI features. Your key is stored securely in your private profile.
+              </p>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-4 border-t border-neutral-800">
             <button
@@ -306,7 +330,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };

@@ -37,12 +37,12 @@ export const generateUniqueFriendCode = async (): Promise<string> => {
   let code = generateFriendCode();
   let attempts = 0;
   const maxAttempts = 10;
-  
+
   while (await checkFriendCodeExists(code) && attempts < maxAttempts) {
     code = generateFriendCode();
     attempts++;
   }
-  
+
   return code;
 };
 
@@ -54,7 +54,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     }
     const docRef = doc(db as any, 'users', uid);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return docSnap.data() as UserProfile;
     }
@@ -89,25 +89,25 @@ export const checkEmailExists = async (email: string): Promise<boolean> => {
 export const createUserProfile = async (profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<void> => {
   try {
     if (!db) throw new Error('Firestore not initialized. Cannot create user profile.');
-    
+
     // Check if profile already exists for this UID
     const existingProfile = await getUserProfile(profile.uid);
     if (existingProfile) {
       throw new Error('A profile already exists for this account. Please log in instead.');
     }
-    
+
     // Check if email is already registered
     const emailExists = await checkEmailExists(profile.email);
     if (emailExists) {
       throw new Error('This email is already registered. Please use a different email or log in with your existing account.');
     }
-    
+
     // Generate unique friend code if not provided
     const friendCode = profile.friendCode || await generateUniqueFriendCode();
-    
+
     const docRef = doc(db as any, 'users', profile.uid);
     const now = new Date().toISOString();
-    
+
     await setDoc(docRef, {
       ...profile,
       email: profile.email.toLowerCase(), // Store email in lowercase for consistency
@@ -148,11 +148,11 @@ export const getUserByFriendCode = async (friendCode: string): Promise<UserProfi
     const usersCollection = collection(db as any, 'users');
     const q = query(usersCollection, where('friendCode', '==', friendCode.toUpperCase()));
     const querySnapshot = await getDocs(q);
-    
+
     if (querySnapshot.empty) {
       return null;
     }
-    
+
     return querySnapshot.docs[0].data() as UserProfile;
   } catch (error) {
     console.error('Error finding user by friend code:', error);
@@ -166,38 +166,38 @@ export const getUserByFriendCode = async (friendCode: string): Promise<UserProfi
 export const addFriendByCode = async (userId: string, friendCode: string): Promise<void> => {
   try {
     if (!db) throw new Error('Firestore not initialized');
-    
+
     // Find the friend by their code
     const friendProfile = await getUserByFriendCode(friendCode);
-    
+
     if (!friendProfile) {
       throw new Error('No user found with this friend code');
     }
-    
+
     if (friendProfile.uid === userId) {
       throw new Error('You cannot add yourself as a friend');
     }
-    
+
     // Get current user's profile
     const userProfile = await getUserProfile(userId);
-    
+
     if (!userProfile) {
       throw new Error('User profile not found');
     }
-    
+
     // Check if already friends
     if (userProfile.friends?.includes(friendProfile.uid)) {
       throw new Error('This user is already your friend');
     }
-    
+
     // Add friend to user's friends list
     const updatedFriends = [...(userProfile.friends || []), friendProfile.uid];
     await updateUserProfile(userId, { friends: updatedFriends });
-    
+
     // Add user to friend's friends list (mutual friendship)
     const friendUpdatedFriends = [...(friendProfile.friends || []), userId];
     await updateUserProfile(friendProfile.uid, { friends: friendUpdatedFriends });
-    
+
   } catch (error) {
     console.error('Error adding friend:', error);
     throw error;
@@ -210,11 +210,11 @@ export const addFriendByCode = async (userId: string, friendCode: string): Promi
 export const getFriendsProfiles = async (friendIds: string[]): Promise<UserProfile[]> => {
   try {
     if (!db || !friendIds || friendIds.length === 0) return [];
-    
+
     const friendProfiles = await Promise.all(
       friendIds.map(friendId => getUserProfile(friendId))
     );
-    
+
     return friendProfiles.filter(profile => profile !== null) as UserProfile[];
   } catch (error) {
     console.error('Error fetching friends profiles:', error);
@@ -228,23 +228,23 @@ export const getFriendsProfiles = async (friendIds: string[]): Promise<UserProfi
 export const removeFriend = async (userId: string, friendId: string): Promise<void> => {
   try {
     if (!db) throw new Error('Firestore not initialized');
-    
+
     // Get current user's profile
     const userProfile = await getUserProfile(userId);
     const friendProfile = await getUserProfile(friendId);
-    
+
     if (!userProfile || !friendProfile) {
       throw new Error('User profile not found');
     }
-    
+
     // Remove friend from user's friends list
     const updatedUserFriends = (userProfile.friends || []).filter(id => id !== friendId);
     await updateUserProfile(userId, { friends: updatedUserFriends });
-    
+
     // Remove user from friend's friends list
     const updatedFriendFriends = (friendProfile.friends || []).filter(id => id !== userId);
     await updateUserProfile(friendId, { friends: updatedFriendFriends });
-    
+
   } catch (error) {
     console.error('Error removing friend:', error);
     throw error;
