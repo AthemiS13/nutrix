@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getDailyStats, deleteMeal } from '@/lib/meal-service';
+import { getDailyStats, deleteMeal, getMealsByDateRange } from '@/lib/meal-service';
 import { DailyStats, MealLog, UserProfile } from '@/lib/types';
 import { MacroChart } from '@/components/charts/MacroChart';
 import { CalorieChart } from '@/components/charts/CalorieChart';
@@ -40,7 +40,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
   const loadData = async () => {
     setLoading(true);
     try {
-      const dailyStats = await getDailyStats(userId, currentDate);
+      const startDate = subDays(currentDate, 6);
+      const allMeals = await getMealsByDateRange(userId, startDate, currentDate);
+      
+      const mealsByDate: Record<string, MealLog[]> = {};
+      allMeals.forEach(meal => {
+        if (!mealsByDate[meal.date]) mealsByDate[meal.date] = [];
+        mealsByDate[meal.date].push(meal);
+      });
+
+      const weekDataResult: DailyStats[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = subDays(currentDate, i);
+        const dStr = format(d, 'yyyy-MM-dd');
+        
+        const mealsForDay = mealsByDate[dStr] || [];
+        let cal = 0, pro = 0, fats = 0, carbs = 0;
+        mealsForDay.forEach(m => {
+          cal += m.nutrients.calories;
+          pro += m.nutrients.protein;
+          fats += m.nutrients.fats;
+          carbs += m.nutrients.carbohydrates;
+        });
+        
+        weekDataResult.push({
+          date: dStr,
+          totalCalories: cal,
+          totalProtein: pro,
+          totalFats: fats,
+          totalCarbohydrates: carbs,
+          meals: mealsForDay,
+        });
+      }
+      
+      setWeeklyData(weekDataResult);
+      
+      const dailyStats = weekDataResult[weekDataResult.length - 1];
       setStats(dailyStats);
 
       // Update streak if viewing today's date
@@ -51,15 +86,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId, userProfile }) => 
         const updatedStreak = await updateStreak(userId, dailyStats, userProfile);
         setStreakData(updatedStreak);
       }
-
-      // Load last 7 days for trend
-      const weekData: DailyStats[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = subDays(currentDate, i);
-        const dayStats = await getDailyStats(userId, date);
-        weekData.push(dayStats);
-      }
-      setWeeklyData(weekData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {

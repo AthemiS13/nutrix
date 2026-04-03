@@ -14,18 +14,17 @@ import { Sparkles } from 'lucide-react';
 
 interface MealLogFormProps {
   userId: string;
+  recipes: Recipe[];
   onSuccess: () => void;
   onNavigateToSettings: () => void;
 }
 
-export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onNavigateToSettings }) => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuccess, onNavigateToSettings }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food' | 'nutrix'>('recipe');
   const [mass, setMass] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,16 +49,12 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onN
   const [nutrixResult, setNutrixResult] = useState<any>(null); // Using any temporarily for convenience, properly defined in gemini.ts but here for state
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
 
+  // If no recipes available, switch to manual entry
   useEffect(() => {
-    loadRecipes();
-  }, [userId]);
-
-  // If no recipes available, switch to manual entry after load
-  useEffect(() => {
-    if (!loading && recipes.length === 0) {
+    if (recipes.length === 0) {
       setLogMode('manual');
     }
-  }, [loading, recipes]);
+  }, [recipes]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -148,16 +143,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onN
     }
   };
 
-  const loadRecipes = async () => {
-    try {
-      const userRecipes = await getUserRecipes(userId);
-      setRecipes(userRecipes);
-    } catch (err: any) {
-      setError('Failed to load recipes');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const loadUserProfile = async () => {
     try {
@@ -379,13 +365,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, onSuccess, onN
 
   const nutrients = calculateNutrients();
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
-      </div>
-    );
-  }
+
 
   // Render
 

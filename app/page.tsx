@@ -42,10 +42,10 @@ export default function HomePage() {
   }, [user]);
 
   useEffect(() => {
-    if (user && currentView === 'recipes') {
+    if (user) {
       loadRecipes();
     }
-  }, [user, currentView]);
+  }, [user]);
 
   const loadProfile = async () => {
     if (!user) return;
@@ -157,6 +157,7 @@ export default function HomePage() {
           {currentView === 'log-meal' && (
             <MealLogForm
               userId={user.uid}
+              recipes={recipes}
               onSuccess={() => setCurrentView('dashboard')}
               onNavigateToSettings={() => setCurrentView('settings')}
             />
