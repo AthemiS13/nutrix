@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserProfile } from '@/lib/user-service';
-import { Loader2, Save, LogOut, ChevronDown, Copy } from 'lucide-react';
+import { Loader2, Save, LogOut, ChevronDown, Copy, Download } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface SettingsPageProps {
   userId: string;
@@ -18,6 +19,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onUpdate,
   onLogout,
 }) => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     displayName: userProfile.displayName || '',
     bodyWeight: userProfile.bodyWeight.toString(),
@@ -318,6 +320,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   Save Changes
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/export/')}
+              className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-50 font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2"
+            >
+              <Download className="w-5 h-5 text-blue-400" />
+              Export Data (JSON)
             </button>
 
             <button
