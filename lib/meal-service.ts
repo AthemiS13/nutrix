@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { MealLog, Recipe, DailyStats } from './types';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, format } from 'date-fns';
 
 export const logMeal = async (
   userId: string,
@@ -39,7 +39,7 @@ export const logMeal = async (
       recipeName,
       mass,
       nutrients,
-      date: now.split('T')[0], // Store as YYYY-MM-DD
+      date: format(new Date(), 'yyyy-MM-dd'), // Store as YYYY-MM-DD
       createdAt: now,
     };
 
@@ -68,7 +68,7 @@ export const logCustomMeal = async (
       recipeName: mealName || 'Custom Meal',
       mass,
       nutrients,
-      date: now.split('T')[0],
+      date: format(new Date(), 'yyyy-MM-dd'),
       createdAt: now,
     };
 
@@ -82,7 +82,7 @@ export const logCustomMeal = async (
 
 export const getMealsByDate = async (userId: string, date: Date): Promise<MealLog[]> => {
   try {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = format(date, 'yyyy-MM-dd');
     if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
     const mealsRef = collection(db as any, 'users', userId, 'meals');
     const q = query(
@@ -109,7 +109,7 @@ export const getDailyStats = async (userId: string, date: Date): Promise<DailySt
     const meals = await getMealsByDate(userId, date);
     
     const stats: DailyStats = {
-      date: date.toISOString().split('T')[0],
+      date: format(date, 'yyyy-MM-dd'),
       totalCalories: 0,
       totalProtein: 0,
       totalFats: 0,
@@ -150,8 +150,8 @@ export const getMealsByDateRange = async (
   try {
     if (!db) throw new Error('Firestore not initialized. Ensure NEXT_PUBLIC_FIREBASE_* env vars are set and Firebase initializes on the client.');
     const mealsRef = collection(db as any, 'users', userId, 'meals');
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = format(endDate, 'yyyy-MM-dd');
     
     // Use single orderBy to avoid composite index requirement
     const q = query(
