@@ -70,85 +70,109 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, []);
 
-  const startScanning = useCallback(async () => {
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    setScannedBarcode(barcode);
+    setLooking(true);
+    setNotFound(false);
+    setError('');
+
+    try {
+      const result = await lookupBarcode(barcode);
+      if (result) {
+        setProduct(result);
+        setMass(result.servingSize ? String(result.servingSize) : '100');
+      } else {
+        setNotFound(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to look up product');
+    } finally {
+      setLooking(false);
+    }
+  }, []);
+
+  const startScanning = useCallback(() => {
     setCameraError(null);
     setError('');
     setNotFound(false);
     setProduct(null);
     setScannedBarcode(null);
+    setScanning(true); // Mount the real camera div first
 
-    try {
-      // Dynamic import to avoid SSR issues
-      const { Html5Qrcode } = await import('html5-qrcode');
+    // Wait for React to render the div before initializing scanner
+    setTimeout(async () => {
+      try {
+        // Dynamic import to avoid SSR issues
+        const { Html5Qrcode } = await import('html5-qrcode');
 
-      if (scannerRef.current) {
-        try {
-          await scannerRef.current.stop();
-        } catch {
-          // ignore — might not be running
-        }
-      }
-
-      const formats = await getBarcodeFormats();
-      const html5QrCode = new Html5Qrcode('barcode-reader', {
-        formatsToSupport: formats,
-        verbose: false,
-      });
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 120 },
-          aspectRatio: 1.0,
-        },
-        async (decodedText: string) => {
-          // Barcode scanned!
+        if (scannerRef.current) {
           try {
-            await html5QrCode.stop();
+            await scannerRef.current.stop();
           } catch {
-            // ignore
+            // ignore — might not be running
           }
-          setScanning(false);
-          handleBarcodeScan(decodedText);
-        },
-        () => {
-          // Scanning in progress — ignore intermediate scan failures
         }
-      );
 
-      setScanning(true);
-    } catch (err: any) {
-      console.error('Camera error:', err);
-      const msg = err?.message || '';
-      if (
-        msg.includes('NotAllowedError') ||
-        err?.name === 'NotAllowedError'
-      ) {
-        setCameraError(
-          'Camera access denied. Please allow camera access in your browser settings.'
+        const formats = await getBarcodeFormats();
+        const html5QrCode = new Html5Qrcode('barcode-reader', {
+          formatsToSupport: formats,
+          verbose: false,
+        });
+        scannerRef.current = html5QrCode;
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 280, height: 120 },
+            aspectRatio: 1.0,
+          },
+          async (decodedText: string) => {
+            // Barcode scanned!
+            try {
+              await html5QrCode.stop();
+            } catch {
+              // ignore
+            }
+            setScanning(false);
+            handleBarcodeScan(decodedText);
+          },
+          () => {
+            // Scanning in progress — ignore intermediate scan failures
+          }
         );
-      } else if (
-        msg.includes('NotFoundError') ||
-        err?.name === 'NotFoundError'
-      ) {
-        setCameraError('No camera found on this device.');
-      } else if (
-        msg.includes('not supported') ||
-        msg.includes('insecure') ||
-        !isSecureContext
-      ) {
-        setCameraError(
-          'Live camera requires HTTPS. Use the "Scan from Photo" option below instead, or access this app via HTTPS.'
-        );
-      } else {
-        setCameraError(
-          msg || 'Failed to start camera.'
-        );
+      } catch (err: any) {
+        setScanning(false); // Revert UI on error
+        console.error('Camera error:', err);
+        const msg = err?.message || '';
+        if (
+          msg.includes('NotAllowedError') ||
+          err?.name === 'NotAllowedError'
+        ) {
+          setCameraError(
+            'Camera access denied. Please allow camera access in your browser settings.'
+          );
+        } else if (
+          msg.includes('NotFoundError') ||
+          err?.name === 'NotFoundError'
+        ) {
+          setCameraError('No camera found on this device.');
+        } else if (
+          msg.includes('not supported') ||
+          msg.includes('insecure') ||
+          !isSecureContext
+        ) {
+          setCameraError(
+            'Live camera requires HTTPS. Use the "Scan from Photo" option below instead, or access this app via HTTPS.'
+          );
+        } else {
+          setCameraError(
+            msg || 'Failed to start camera.'
+          );
+        }
       }
-    }
-  }, [isSecureContext]);
+    }, 50);
+  }, [isSecureContext, handleBarcodeScan]);
 
   const stopScanning = useCallback(async () => {
     if (scannerRef.current) {
@@ -822,9 +846,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             </div>
 
           </div>
-
-          {/* Hidden reader div for html5-qrcode initialization */}
-          <div id="barcode-reader" className="hidden" />
         </div>
       )}
     </div>
