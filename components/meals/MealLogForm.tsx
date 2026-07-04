@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getUserRecipes } from '@/lib/recipe-service';
 import { logMeal, logCustomMeal } from '@/lib/meal-service';
 import { Recipe } from '@/lib/types';
-import { Plus, Loader2, Search, X } from 'lucide-react';
+import { Plus, Loader2, Search, X, ScanBarcode } from 'lucide-react';
 import { convertToGrams, gramsToTablespoons, shouldUseNaturalUnit, sanitizeServingUnit, abbreviateUnit } from '@/lib/unit-utils';
 import { searchIngredients, getIngredientById } from '@/lib/usda-api';
 import { Ingredient } from '@/lib/types';
 import { getUserProfile } from '@/lib/user-service';
 import { analyzeFoodDescription } from '@/lib/gemini';
 import { Sparkles } from 'lucide-react';
+import { BarcodeScanner } from '@/components/meals/BarcodeScanner';
+import { IngredientListBuilder, IngredientEntry } from '@/components/meals/IngredientListBuilder';
 
 interface MealLogFormProps {
   userId: string;
@@ -21,7 +23,7 @@ interface MealLogFormProps {
 
 export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuccess, onNavigateToSettings }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food' | 'nutrix'>('recipe');
+  const [logMode, setLogMode] = useState<'recipe' | 'manual' | 'food' | 'nutrix' | 'scan'>('recipe');
   const [mass, setMass] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<'g' | 'tbsp' | 'special'>('g');
   const [useFullRecipe, setUseFullRecipe] = useState(true);
@@ -45,9 +47,21 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
 
   // Nutrix AI fields
   const [nutrixDescription, setNutrixDescription] = useState('');
+  const [nutrixIngredients, setNutrixIngredients] = useState<IngredientEntry[]>([]);
   const [nutrixAnalyzing, setNutrixAnalyzing] = useState(false);
   const [nutrixResult, setNutrixResult] = useState<any>(null); // Using any temporarily for convenience, properly defined in gemini.ts but here for state
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
+
+  // Callback for ingredient list builder
+  const handleIngredientsChange = useCallback((ingredients: IngredientEntry[]) => {
+    setNutrixIngredients(ingredients);
+    // Build description string from ingredients
+    const desc = ingredients
+      .filter(ing => ing.name.trim())
+      .map(ing => `${ing.name.trim()} ${ing.grams}g`)
+      .join(', ');
+    setNutrixDescription(desc);
+  }, []);
 
   // If no recipes available, switch to manual entry
   useEffect(() => {
@@ -374,7 +388,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
       <h2 className="text-2xl font-bold mb-6 text-neutral-50">Log a Meal</h2>
 
       {/* Mode Switcher */}
-      <div className="flex gap-2 mb-6 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+      <div className="flex gap-1 mb-6 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
         <button
           type="button"
           onClick={() => { setLogMode('recipe'); setError(''); }}
@@ -383,7 +397,7 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
             : 'text-neutral-400 hover:text-neutral-200'
             }`}
         >
-          My Recipes
+          Recipes
         </button>
         <button
           type="button"
@@ -393,7 +407,18 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
             : 'text-neutral-400 hover:text-neutral-200'
             }`}
         >
-          Search Food
+          Search
+        </button>
+        <button
+          type="button"
+          onClick={() => { setLogMode('scan'); setError(''); }}
+          className={`flex-1 py-2 rounded-md text-[10px] font-medium transition flex items-center justify-center gap-1 ${logMode === 'scan'
+            ? 'bg-neutral-800 text-neutral-50 shadow-sm'
+            : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+        >
+          <ScanBarcode className="w-3 h-3" />
+          Scan
         </button>
         <button
           type="button"
@@ -882,6 +907,11 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
           </div>
         )}
 
+        {/* Barcode Scan Mode */}
+        {logMode === 'scan' && (
+          <BarcodeScanner userId={userId} onSuccess={onSuccess} />
+        )}
+
         {/* Nutrix AI Mode */}
         {
           logMode === 'nutrix' && (
@@ -903,23 +933,16 @@ export const MealLogForm: React.FC<MealLogFormProps> = ({ userId, recipes, onSuc
                 </div>
               ) : (
                 !nutrixResult ? (
-                  // Input State
+                  // Input State — Ingredient List Builder
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-2">
-                        Describe your meal
-                      </label>
-                      <textarea
-                        value={nutrixDescription}
-                        onChange={(e) => setNutrixDescription(e.target.value)}
-                        placeholder="e.g. A large slice of pepperoni pizza and a caesar salad..."
-                        className="w-full h-32 px-4 py-3 bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-50 focus:ring-2 focus:ring-neutral-600 focus:border-transparent resize-none"
-                      />
-                    </div>
+                    <IngredientListBuilder
+                      onChange={handleIngredientsChange}
+                      disabled={nutrixAnalyzing}
+                    />
                     <button
                       type="button"
                       onClick={handleNutrixAnalysis}
-                      disabled={nutrixAnalyzing || !nutrixDescription.trim()}
+                      disabled={nutrixAnalyzing || !nutrixIngredients.some(ing => ing.name.trim())}
                       className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-50 font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {nutrixAnalyzing ? (
