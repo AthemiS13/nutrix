@@ -349,26 +349,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     setLookingUpManual(false);
   };
 
-  const handleBarcodeScan = async (barcode: string) => {
-    setScannedBarcode(barcode);
-    setLooking(true);
-    setNotFound(false);
-    setError('');
 
-    try {
-      const result = await lookupBarcode(barcode);
-      if (result) {
-        setProduct(result);
-        setMass(result.servingSize ? String(result.servingSize) : '100');
-      } else {
-        setNotFound(true);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to look up product');
-    } finally {
-      setLooking(false);
-    }
-  };
 
   const handleLog = async () => {
     if (!product) return;
@@ -376,7 +357,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const massNum = parseFloat(mass);
     if (isNaN(massNum) || massNum <= 0) {
       setError('Please enter a valid amount');
-      return;
+
     }
 
     const ratio = massNum / 100;
@@ -555,8 +536,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 type="button"
                 onClick={() => setMass(String(g))}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${mass === String(g)
-                    ? 'bg-neutral-600 text-neutral-50'
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-300'
+                  ? 'bg-neutral-600 text-neutral-50'
+                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-300'
                   }`}
               >
                 {g}g
@@ -792,8 +773,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               onClick={() => fileInputRef.current?.click()}
               disabled={scanningImage}
               className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition font-semibold text-sm active:scale-[0.97] disabled:opacity-50 ${isSecureContext
-                  ? 'border border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:border-neutral-500'
-                  : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-50'
+                ? 'border border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:border-neutral-500'
+                : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-50'
                 }`}
             >
               {scanningImage ? (
